@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_purchase_order_form_inherit_ml_approval" model="ir.ui.view">
+        <field name="name">purchase.order.form.inherit.ml.approval</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='currency_id']" position="after">
+                <field name="approval_group_id" invisible="state in ['purchase', 'done', 'cancel']" required="True"/>
+                <field name="current_approval_level_id" readonly="1"/>
+                <field name="requires_approval" invisible="1"/>
+                <field name="show_recommend_button" invisible="1"/>
+                <field name="show_returned_button" invisible="1"/>
+                <field name="show_approval_button" invisible="1"/>
+                <field name="curr_pending_at_user_show" invisible="0"/>
+            </xpath>
+
+                        <!-- Modify the existing Approve button -->
+            <xpath expr="//button[@name='button_approve']" position="attributes">
+                <attribute name="invisible">state != 'to approve' or show_approval_button == False</attribute>
+            </xpath>
+
+            <xpath expr="//button[@name='button_confirm']" position="before">
+
+                <button name="action_button_prev_level"
+                        type="object"
+                        string="Returned"
+                        class="btn-danger"
+                        invisible="state != 'to approve' or show_returned_button == False"/>
+
+
+                <button name="action_button_next_level"
+                        type="object"
+                        string="Recommend"
+                        class="btn-success"
+                        invisible="state != 'to approve' or show_recommend_button == False"/>
+
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Approval Comments">
+                    <field name="approval_history_ids" readonly="1">
+                        <list decoration-danger="action == 'returned'">
+                            <field name="action"/>
+                            <field name="user_id"/>
+                            <field name="timestamp"/>
+                            <field name="notes"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>
