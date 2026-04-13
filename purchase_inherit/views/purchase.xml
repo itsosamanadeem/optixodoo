@@ -7,6 +7,9 @@
             <xpath expr="/form//div[@name='reminder']" position="after">
                 <field name="department_id" readonly="1"/>
             </xpath>
+            <!-- <xpath expr="/form//field[@name='picking_type_id']" position="after">
+                <field name="is_sent_back" readonly="1"/>
+            </xpath> -->
         </field>
     </record>
 </odoo>
