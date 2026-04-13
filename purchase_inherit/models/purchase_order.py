@@ -1,5 +1,6 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools.float_utils import float_compare
 
 class PurchaseOrder(models.Model):
     _inherit = ["purchase.order",'mail.thread', 'mail.activity.mixin']
@@ -10,7 +11,34 @@ class PurchaseOrder(models.Model):
         required=False,
         default=lambda self: self.env.user.employee_id.department_id
     )
+    is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True)
     
+    def action_button_prev_level(self):
+        for order in self:
+            order.is_sent_back = True
+        return super().action_button_prev_level()
+    
+    def write(self, vals):
+        # Store old amounts
+        old_amounts = {order.id: order.amount_total for order in self}
+
+        res = super().write(vals)
+
+        for order in self:
+            old_amount = old_amounts.get(order.id)
+            new_amount = order.amount_total
+
+            if float_compare(new_amount,old_amount,precision_rounding=order.currency_id.rounding) > 0:
+                return res, old_amount, new_amount
+        return res
+    def action_button_next_level(self):
+        res, new_amount, old_amount = self.write({})
+        raise UserError(_("The total amount has increased from %s to %s. Please use the 'Confirm' button to proceed with approval.") % (old_amount, new_amount))
+        if new_amount > old_amount:
+            raise UserError(_("The total amount has increased. Please use the 'Confirm' button to proceed with approval."))
+        # for order in self:
+                
+        # raise UserError(_("Please use the 'Confirm' button to proceed with approval."))
     def button_confirm(self):
         for order in self:
             if not order.order_line:
