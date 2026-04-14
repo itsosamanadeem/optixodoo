@@ -15,4 +15,5 @@ class ReturnedCommentWizard(models.TransientModel):
             'state': 'draft',
             'current_approval_level_id': False
         })
+        
         return {'type': 'ir.actions.act_window_close'}

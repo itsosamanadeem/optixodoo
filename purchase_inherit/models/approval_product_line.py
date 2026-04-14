@@ -33,7 +33,7 @@ class ApprovalForm(models.Model):
                 if manager_user.id not in request.approver_ids.mapped('user_id').ids:
                     existing_sequences = request.approver_ids.mapped('sequence')
                     next_sequence = max(existing_sequences, default=0) + 1
-                    request.write({'approver_ids': [(0, 0, {'user_id': manager_user.id,'required': True,'sequence': next_sequence,})]})
+                    request.sudo().write({'approver_ids': [(0, 0, {'user_id': manager_user.id,'required': True,'sequence': next_sequence,})]})
 
         return super().action_confirm()
     
