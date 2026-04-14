@@ -7,6 +7,15 @@
             <xpath expr="/form//div[@name='reminder']" position="after">
                 <field name="department_id" readonly="1"/>
             </xpath>
+            <xpath expr="/form//widget[@name='purchase_file_uploader']" position="attributes">
+                <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
+            </xpath>
+            <xpath expr="/form/header/button[@name='action_rfq_send'][3]" position="attributes">
+                <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
+            </xpath>
+            <xpath expr="/form//button[@name='button_unlock']" position="attributes">
+                <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
+            </xpath>
             <!-- <xpath expr="/form//field[@name='picking_type_id']" position="after">
                 <field name="is_sent_back" readonly="1"/>
             </xpath> -->
