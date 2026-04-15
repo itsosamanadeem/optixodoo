@@ -8,7 +8,7 @@
     'sequence': -100,
     'summary': 'Purchase orders, tenders and agreements',
     'website': 'https://www.odoo.com/app/purchase',
-    'depends': ['purchase','hr','approvals','approvals_purchase','ml_purchase_approval'],
+    'depends': ['purchase','hr','approvals','approvals_purchase','ml_purchase_approval','account'],
     "data": [
         "security/groups.xml",
         "security/rules.xml",

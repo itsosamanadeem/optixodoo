@@ -1,9 +1,8 @@
 from odoo import models, fields, _
 from odoo.exceptions import UserError
 
-# Extend the Approval Product Line to add Department
 class ApprovalProductLine(models.Model):
-    _inherit = 'approval.product.line'
+    _inherit = ['approval.product.line', 'analytic.mixin']
 
     department_ids = fields.Many2many(
         'hr.department',
@@ -44,3 +43,4 @@ class ApprovalForm(models.Model):
             if line.purchase_order_line_id:
                 po_line = line.purchase_order_line_id
                 po_line.department_ids = [(6, 0, line.department_ids.ids)]
+                po_line.analytic_distribution = line.analytic_distribution
