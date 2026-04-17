@@ -1,4 +1,4 @@
-from odoo import models, fields, _
+from odoo import models, fields, _, api
 from odoo.exceptions import UserError
 
 class ApprovalProductLine(models.Model):
@@ -9,6 +9,15 @@ class ApprovalProductLine(models.Model):
         string='Departments',
         tracking=True
     )
+    # analytic_distribution_po = fields.Json(string='Analytic Distribution PO', readonly=False)
+    gl_product = fields.Char(string='GL Product', related='product_id.property_account_expense_id.code')
+
+    # @api.depends('product_id')
+    # def _compute_analytic_distribution(self):
+    #     for rec in self:
+    #         rec.gl_product = rec.product_id.property_account_income_id.code
+        # res = super()._compute_analytic_distribution()
+        # raise UserError(rec.gl_product)
 
 class ApprovalForm(models.Model):
     _inherit = 'approval.request'
@@ -43,4 +52,4 @@ class ApprovalForm(models.Model):
             if line.purchase_order_line_id:
                 po_line = line.purchase_order_line_id
                 po_line.department_ids = [(6, 0, line.department_ids.ids)]
-                po_line.analytic_distribution = line.analytic_distribution
+                po_line.analytic_distribution = line.analytic_distribution_po

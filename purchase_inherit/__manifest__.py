@@ -8,7 +8,16 @@
     'sequence': -100,
     'summary': 'Purchase orders, tenders and agreements',
     'website': 'https://www.odoo.com/app/purchase',
-    'depends': ['purchase','hr','approvals','approvals_purchase','ml_purchase_approval','account'],
+    'depends': ['purchase',
+    'base',
+    'web',
+    'hr',
+    'approvals',
+    'approvals_purchase',
+    'ml_purchase_approval',
+    'account',
+    'analytic',
+    ],
     "data": [
         "security/groups.xml",
         "security/rules.xml",
@@ -19,6 +28,13 @@
         
         # "security/ir.model.access.csv"
     ],
+    'assets': {
+        # 'web.assets_backend': [
+        #     'purchase_inherit/static/src/js/*',
+        #     'purchase_inherit/static/src/scss/*',
+        #     'purchase_inherit/static/src/xml/*',
+        # ],
+    },
     'images': ['static/description/icon.svg'],
     'license': 'LGPL-3',
     'installable': True,

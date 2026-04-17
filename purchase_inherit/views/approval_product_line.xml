@@ -11,8 +11,9 @@
                 <list editable="bottom" string="Products" decoration-danger="has_no_seller">
                     <field name="company_id" column_invisible="True"/>
                     <field name="product_id" required="parent.approval_type != 'purchase' and parent.has_product == 'required'" context="{'search_default_filter_to_purchase': 1}"/>
+                    <field optional="show" name="gl_product"/>
                     <field optional="show" name="department_ids" widget="many2many_tags"/>
-                    <field optional="show" name="analytic_distribution" widget="analytic_distribution"/>
+                    <field optional="show" name="analytic_distribution" widget="analytic_distribution_po"/>
                     <field name="description"/>
                     <field name="quantity" column_invisible="parent.has_quantity == 'no'" required="parent.has_quantity == 'required' and parent.request_status != 'new'"/>
                     <field name="product_uom_id" groups="uom.group_uom" widget="many2one_uom" options="{'no_create': True, 'no_open': True}"/>
