@@ -52,4 +52,4 @@ class ApprovalForm(models.Model):
             if line.purchase_order_line_id:
                 po_line = line.purchase_order_line_id
                 po_line.department_ids = [(6, 0, line.department_ids.ids)]
-                po_line.analytic_distribution = line.analytic_distribution_po
+                po_line.analytic_distribution = line.analytic_distribution
