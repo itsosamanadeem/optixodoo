@@ -9,24 +9,31 @@
     'summary': 'Purchase orders, tenders and agreements',
     'website': 'https://www.odoo.com/app/purchase',
     'depends': ['purchase',
-    'base',
-    'web',
-    'hr',
-    'approvals',
-    'approvals_purchase',
-    'ml_purchase_approval',
-    'account',
-    'analytic',
+                'account_budget',
+                'base',
+                'web',
+                'hr',
+                'approvals',
+                'approvals_purchase',
+                'ml_purchase_approval',
+                'account',
+                'analytic',
     ],
     "data": [
+        #security
         "security/groups.xml",
         "security/rules.xml",
+        "security/ir.model.access.csv",
         
+        #views
+        "views/budget_analytic.xml",
+        "views/hr_department.xml",
         "views/approval_product_line.xml",
         "views/purchase_order_line_views.xml",
         "views/purchase.xml",
         
-        # "security/ir.model.access.csv"
+        #wizards
+        "wizard/budget_wizard.xml",
     ],
     'assets': {
         # 'web.assets_backend': [

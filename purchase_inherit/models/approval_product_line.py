@@ -1,30 +1,80 @@
 from odoo import models, fields, _, api
 from odoo.exceptions import UserError
+import json
 
 class ApprovalProductLine(models.Model):
     _inherit = ['approval.product.line', 'analytic.mixin']
 
-    department_ids = fields.Many2many(
+    @api.model
+    def _domain_department_id_for_user(self):
+        """
+        Users in `purchase_inherit.raise_pr_for_all_departments` can pick any department.
+        Others can only pick their own employee department.
+        """
+        domain = []
+        if not self.env.user.has_group('purchase_inherit.raise_pr_for_all_departments'):
+            dept = self.env.user.employee_id.department_id
+            domain.append(('id', '=', dept.id if dept else False))
+        return domain
+
+    department_id = fields.Many2one(
         'hr.department',
         string='Departments',
-        tracking=True
+        domain=_domain_department_id_for_user,
     )
-    # analytic_distribution_po = fields.Json(string='Analytic Distribution PO', readonly=False)
-    gl_product = fields.Char(string='GL Product', related='product_id.property_account_expense_id.code')
+    # product_gl_description = fields.Text(string="Product Description", related="product_id.", readonly=True)
+    department_analytic_account_id = fields.Many2one(
+        "account.analytic.account",
+        string="Cost Center",
+        related="department_id.analytic_account_id",
+        store=True,
+        readonly=True,
+    )
+    department_analytic_city_id = fields.Many2one(
+        "account.analytic.account",
+        string="City",
+        related="department_id.analytic_city_id",
+        store=True,
+        readonly=True,
+    )
 
-    # @api.depends('product_id')
-    # def _compute_analytic_distribution(self):
-    #     for rec in self:
-    #         rec.gl_product = rec.product_id.property_account_income_id.code
-        # res = super()._compute_analytic_distribution()
-        # raise UserError(rec.gl_product)
+    # `approval.product.line` is used by `approvals_purchase` to generate purchase orders.
+    # Currency must always be set to avoid creating/updating a PO with a missing `currency_id`.
+    currency_id = fields.Many2one(
+        'res.currency',
+        string="Currency",
+        related='company_id.currency_id',
+        store=True,
+        readonly=True,
+    )
+    @api.depends('department_analytic_account_id','department_id')
+    def _compute_analytic_distribution(self):
+        # Keep the base analytic behavior, then auto-fill from department cost center.
+        super()._compute_analytic_distribution()
+        for rec in self:
+            if (rec.department_analytic_account_id or rec.department_analytic_city_id) and not rec.analytic_distribution:
+                rec.analytic_distribution = {f"{rec.department_analytic_account_id.id},{rec.department_analytic_city_id.id}": 100}
+
+    @api.onchange('department_id')
+    def _onchange_department_id_set_analytic_distribution(self):
+        for rec in self:
+            if not rec.department_id:
+                continue
+            aa = rec.department_id.analytic_account_id
+            ac = rec.department_id.analytic_city_id
+            if aa or ac:
+                rec.analytic_distribution = {f"{aa.id},{ac.id}": 100}
+
+    def _check_products_vendor(self):
+        pass
 
 class ApprovalForm(models.Model):
     _inherit = 'approval.request'
 
     def action_confirm(self):
         for request in self:
-            departments = request.product_line_ids.mapped('department_ids')
+            departments = request.product_line_ids.mapped('department_id')
+            # raise UserError(departments)
             for department in departments:
                 if not department:
                     continue 
@@ -46,10 +96,14 @@ class ApprovalForm(models.Model):
         return super().action_confirm()
     
     def _create_purchase_orders(self):
-        super()._create_purchase_orders()
+        res = super()._create_purchase_orders()
         
         for line in self.product_line_ids:
             if line.purchase_order_line_id:
                 po_line = line.purchase_order_line_id
-                po_line.department_ids = [(6, 0, line.department_ids.ids)]
+                po_line.department_id = line.department_id
                 po_line.analytic_distribution = line.analytic_distribution
+                # Don't write currency on PO lines; it's derived from the purchase order.
+
+        # self.approver_ids.sudo().unlink()
+        return res
