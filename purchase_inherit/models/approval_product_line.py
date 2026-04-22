@@ -22,7 +22,12 @@ class ApprovalProductLine(models.Model):
         string='Departments',
         domain=_domain_department_id_for_user,
     )
-    # product_gl_description = fields.Text(string="Product Description", related="product_id.", readonly=True)
+    product_gl_description = fields.Text(string="Product Description", readonly=True)
+    
+    @api.onchange('product_id')
+    def product_gl_onchange(self):
+        for rec in self:
+            rec.product_gl_description = rec.product_id.property_account_expense_id.code + ' ' + rec.product_id.property_account_expense_id.name if rec.product_id and rec.product_id.property_account_expense_id else ''
     department_analytic_account_id = fields.Many2one(
         "account.analytic.account",
         string="Cost Center",

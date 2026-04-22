@@ -8,12 +8,12 @@ class HrDepartment(models.Model):
         "account.analytic.account",
         string="Cost Center",
         help="Analytic account used as the department cost center.",
-        domain=[("plan_id.name", "=", "Cost Center")],
+        domain=[("plan_id.name", "ilike", "Cost Center")],
     )
 
     analytic_city_id = fields.Many2one(
         "account.analytic.account",
         string="City",
         help="Analytic city used as the department city center.",
-        domain=[("plan_id.name", "=", "City")],
+        domain=[("plan_id.name", "ilike", "City")],
     )

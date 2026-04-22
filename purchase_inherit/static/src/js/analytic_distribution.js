@@ -26,13 +26,14 @@ import {
     onPatched,
 } from "@odoo/owl";
 
-export class AnalyticDistributionPO extends Component {
-    static template = "purchase_inherit.AnalyticDistributionPO";
+export class AnalyticDistributionPo extends Component {
+    static template = "purchase_inherit.AnalyticDistribution";
     static components = {
         TagsList,
         Record,
         Field,
     }
+
     static props = {
         ...standardFieldProps,
         business_domain: { type: String, optional: true },
@@ -45,8 +46,8 @@ export class AnalyticDistributionPO extends Component {
         multi_edit: { type: Boolean, optional: true },
         placeholder: { type: String, optional: true },
     }
-    setup() {
-        // console.log('this is props', this.props.record); 
+
+    setup(){
         this.orm = useService("orm");
         this.batchedOrm = useService("batchedOrm");
 
@@ -71,7 +72,6 @@ export class AnalyticDistributionPO extends Component {
         onWillStart(this.willStart);
         useRecordObserver(this.willUpdateRecord.bind(this));
         onPatched(this.patched);
-
 
         useExternalListener(window, "click", this.onWindowClick, true);
         useExternalListener(window, "resize", this.onWindowResized);
@@ -101,7 +101,6 @@ export class AnalyticDistributionPO extends Component {
         this.lastAccount = this.props.account_field && this.props.record.data[this.props.account_field] || false;
         this.lastProduct = this.props.product_field && this.props.record.data[this.props.product_field] || false;
     }
-
 
     // Lifecycle
     async willStart() {
@@ -168,7 +167,7 @@ export class AnalyticDistributionPO extends Component {
                     total += roundDecimals(line.percentage, this.decimalPrecision.digits[1] + 2);
 
                     accountTotals[planId] = accountTotals[planId] || {};
-                    accountTotals[planId][accId] = { accId, accName, planId, total, planColor };
+                    accountTotals[planId][accId] = { accId, accName, planId, total, planColor};
                 }
             })
         });
@@ -217,7 +216,7 @@ export class AnalyticDistributionPO extends Component {
             const accs = Object.values(planSummary);
             return {
                 id: accs[0].planId,
-                text: accs.reduce((p, n) => p + (p.length ? " | " : "") + (this.planIsComplete(n.total) ? n.accName : `${formatPercentage(n.total)} ${n.accName}`), ""),
+                text: accs.reduce((p, n) => p + (p.length ? " | " : "") + (this.planIsComplete(n.total) ? n.accName : `${formatPercentage(n.total)} ${n.accName}`) , ""),
                 colorIndex: accs[0].planColor,
                 onClick: (ev) => this.tagClicked(ev),
             };
@@ -233,7 +232,7 @@ export class AnalyticDistributionPO extends Component {
     }
 
     async jsonToData(jsonFieldValue) {
-        const analyticAccountIds = jsonFieldValue ? Object.keys(jsonFieldValue).filter((key) => key != '__update__').map((key) => key.split(',')).flat().map((id) => parseInt(id)) : [];
+        const analyticAccountIds = jsonFieldValue ? Object.keys(jsonFieldValue).filter((key) => key != '__update__' ).map((key) => key.split(',')).flat().map((id) => parseInt(id)) : [];
         const analyticAccountDict = analyticAccountIds.length ? await this.fetchAnalyticAccounts([["id", "in", analyticAccountIds]]) : [];
 
         let distribution = [];
@@ -250,13 +249,13 @@ export class AnalyticDistributionPO extends Component {
                     // since tags are displayed even though plans might not be retrieved (ie defaultVals is empty)
                     // push the accounts anyway, as order doesn't matter
                     // once the popup is opened, plans are fetched and the analyticAccounts list will be ordered
-                    Object.assign(defaultVals.find((plan) => plan.planId == account.root_plan_id[0]) || defaultVals.push({}) && defaultVals[defaultVals.length - 1],
-                        {
-                            accountId: parseInt(id),
-                            accountDisplayName: account.display_name,
-                            accountColor: account.color,
-                            accountRootPlanId: account.root_plan_id[0],
-                        });
+                    Object.assign(defaultVals.find((plan) => plan.planId == account.root_plan_id[0]) || defaultVals.push({}) && defaultVals[defaultVals.length-1],
+                    {
+                        accountId: parseInt(id),
+                        accountDisplayName: account.display_name,
+                        accountColor: account.color,
+                        accountRootPlanId: account.root_plan_id[0],
+                    });
                 } else {
                     accountNotFound = true;
                 }
@@ -274,9 +273,7 @@ export class AnalyticDistributionPO extends Component {
         }
     }
 
-    recordProps(line, record) {
-        // console.log('this gl product record', record);
-        
+    recordProps(line) {
         const analyticAccountFields = {
             id: { type: "int" },
             display_name: { type: "char" },
@@ -289,8 +286,6 @@ export class AnalyticDistributionPO extends Component {
         // Analytic Account fields
         line.analyticAccounts.map((account) => {
             const fieldName = this.planIdToColumn[account.planId];
-            // console.log('this is the field name', fieldName);
-            
             const companyId = this.props.record.data.company_id && this.props.record.data.company_id[0];
             const domain = companyId
                 ? [
@@ -299,7 +294,7 @@ export class AnalyticDistributionPO extends Component {
                     "|",
                     ["company_id", "parent_of", companyId],
                     ["company_id", "=", false],
-                ]
+                  ]
                 : [["root_plan_id", "=", account.planId]];
             recordFields[fieldName] = {
                 string: account.planName,
@@ -311,14 +306,9 @@ export class AnalyticDistributionPO extends Component {
                 },
                 domain,
             };
-            if (fieldName === 'x_plan3_id') {
-                const glCode = this.props.record.data.gl_product;
-                values[fieldName] = [account.accountId, glCode]
-            }else{
-                values[fieldName] = account?.accountId
-                    ? [account.accountId, account.accountDisplayName]
-                    : false;
-            }
+            values[fieldName] = account?.accountId
+                ? [account.accountId, account.accountDisplayName]
+                : false;
         });
         // Percentage field
         recordFields['percentage'] = {
@@ -340,15 +330,6 @@ export class AnalyticDistributionPO extends Component {
                 values[currency_field] = [this.props.record.data[currency_field].id, ""];
             }
         }
-        // console.log({
-        //     fields: recordFields,
-        //     values: values,
-        //     activeFields: recordFields,
-        //     hooks: {
-        //         onRecordChanged: async (record, changes) => await this.lineChanged(record, changes, line),
-        //     }
-        // });
-        
         return {
             fields: recordFields,
             values: values,
@@ -415,15 +396,13 @@ export class AnalyticDistributionPO extends Component {
         // batched call
         const records = await this.batchedOrm.read("account.analytic.account", domain[0][2], args.fields, {});
         return Object.assign({}, ...records.map((r) => {
-            const { id, ...rest } = r;
-            return { [id]: rest };
+            const {id, ...rest} = r;
+            return {[id]: rest};
         }));
     }
 
     // Editing Distributions
     async lineChanged(record, changes, line) {
-        // console.log('this is the lineChanged function', record, line, changes);
-        
         // record analytic account changes to the state
         for (const account of line.analyticAccounts) {
             const selected = record.data[this.planIdToColumn[account.planId]];
@@ -463,7 +442,6 @@ export class AnalyticDistributionPO extends Component {
     }
 
     get isDropdownOpen() {
-
         return this.state.showDropdown && !!this.dropdownRef.el;
     }
 
@@ -472,7 +450,7 @@ export class AnalyticDistributionPO extends Component {
         let maxMandatory = 0, maxOptional = 0, hasMandatory = false;
 
         Object.values(this.planTotals()).filter((plan) => plan.value < 1).map((plan) => {
-            if (plan.applicability == "mandatory") {
+            if (plan.applicability == "mandatory"){
                 maxMandatory = Math.max(plan.value, maxMandatory);
                 hasMandatory = true;
             } else {
@@ -522,18 +500,13 @@ export class AnalyticDistributionPO extends Component {
 
     onSaveNew() {
         this.closeAnalyticEditor();
-        // gl_product = 
-        // console.log("this is the Product GL",gl_product);
         const { record, product_field, account_field } = this.props;
-        this.openTemplate({
-            resId: false, context: {
-                'default_analytic_distribution': this.dataToJson(),
-                'default_product_gl': record.data['gl_product'],
-                'default_partner_id': record.data['partner_id'] ? record.data['partner_id'].id : undefined,
-                'default_product_id': product_field ? record.data[product_field].id : undefined,
-                'default_account_prefix': account_field ? record.data[account_field].display_name.substr(0, 3) : undefined,
-            }
-        });
+        this.openTemplate({ resId: false, context: {
+            'default_analytic_distribution': this.dataToJson(),
+            'default_partner_id': record.data['partner_id'] ? record.data['partner_id'].id : undefined,
+            'default_product_id': product_field ? record.data[product_field].id : undefined,
+            'default_account_prefix': account_field ? record.data[account_field].display_name.substr(0, 3) : undefined,
+        }});
     }
 
     forceCloseEditor() {
@@ -606,7 +579,7 @@ export class AnalyticDistributionPO extends Component {
 
     focusAdjacent(direction) {
         const elementToFocus = this.adjacentElementToFocus(direction);
-        if (elementToFocus) {
+        if (elementToFocus){
             this.focus(elementToFocus);
             return true;
         }
@@ -694,7 +667,7 @@ export class AnalyticDistributionPO extends Component {
             && (!ev.target.closest(selectors.join(",")) ||
                 document.querySelector(".modal:not(.o_inactive_modal)").contains(this.widgetRef.el))
             && !ev.target.isSameNode(document.documentElement)
-        ) {
+           ) {
             this.forceCloseEditor();
         }
     }
@@ -705,11 +678,10 @@ export class AnalyticDistributionPO extends Component {
             this.forceCloseEditor();
         }
     }
-
 }
 
 export const analyticDistributionPo = {
-    component: AnalyticDistributionPO,
+    component: AnalyticDistributionPo,
     supportedTypes: ["json"],
     fieldDependencies: [
         { name: "analytic_precision", type: "integer" },

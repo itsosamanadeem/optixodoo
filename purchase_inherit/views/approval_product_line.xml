@@ -14,8 +14,9 @@
                     <field optional="show" name="department_id"/>
                     <field name="department_analytic_account_id" column_invisible="1"/>
                     <field name="department_analytic_city_id" column_invisible="1"/>
-                    <field optional="show" name="analytic_distribution" widget="analytic_distribution"/>
+                    <field optional="show" name="analytic_distribution" widget="analytic_distribution_po"/>
                     <field name="description"/>
+                    <field name="product_gl_description" optional="show"/>
                     <field name="quantity" column_invisible="parent.has_quantity == 'no'" required="parent.has_quantity == 'required' and parent.request_status != 'new'"/>
                     <field name="product_uom_id" groups="uom.group_uom" widget="many2one_uom" options="{'no_create': True, 'no_open': True}"/>
                     <field name="seller_id" column_invisible="True" required="False"/>

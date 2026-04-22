@@ -133,9 +133,8 @@ class PurchaseOrder(models.Model):
         return super(PurchaseOrder, self.with_context(ctx)).button_confirm()
     
     def button_approve(self):
-        # if self.env.context.get('skip_budget_check'):
-            # continue
-            # return super().button_approve()
+        if self.env.context.get('skip_budget_check'):
+            return super().button_approve()
         
         for order in self:
             # budget logic per line
@@ -145,13 +144,14 @@ class PurchaseOrder(models.Model):
                         "Please set an analytic account for department '%s'."
                     ) % (line.department_id.name or 'Unknown'))
                 ac = self.env['budget.line'].sudo().search([
-                    ('account_id', '=', line.department_id.analytic_city_id.id)
-                    # ('budget_analytic_id.state','=','done')
+                    ('account_id', '=', line.department_id.analytic_account_id.id),
+                    ('budget_analytic_id.state','=','done')
                 ], limit=1)
+                # raise UserError(_("Analytic Account: %s") % ac.b)
                 if not ac or not ac.budget_analytic_id:
                     raise UserError(_(
                         "No budget configuration found for the analytic account '%s'."
-                    ) % line.department_id.analytic_city_id.name)
+                    ) % line.department_id.analytic_account_id.name)
                 configuration = ac.budget_analytic_id.sudo().configuration
                 
                 if configuration == 'restrict':

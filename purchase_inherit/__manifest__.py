@@ -36,11 +36,11 @@
         "wizard/budget_wizard.xml",
     ],
     'assets': {
-        # 'web.assets_backend': [
-        #     'purchase_inherit/static/src/js/*',
-        #     'purchase_inherit/static/src/scss/*',
-        #     'purchase_inherit/static/src/xml/*',
-        # ],
+        'web.assets_backend': [
+            'purchase_inherit/static/src/js/*',
+            'purchase_inherit/static/src/scss/*',
+            'purchase_inherit/static/src/xml/*',
+        ],
     },
     'images': ['static/description/icon.svg'],
     'license': 'LGPL-3',
