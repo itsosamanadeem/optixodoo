@@ -12,7 +12,24 @@ class PurchaseOrder(models.Model):
         default=lambda self: self.env.user.employee_id.department_id
     )
     is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True)
-        
+    
+    def action_button_prev_level(self):
+        for order in self:
+            order.button_unlock()
+            # Activity
+            group = self.env.ref('purchase_inherit.group_scm_user')
+            scm_users = group.user_ids
+            # scm_users = self.env['res.users'].search([('groups_id', 'in', self.env.ref('purchase_inherit.group_scm_user').id)])
+            for user in scm_users:
+                self.env['mail.activity'].create({
+                    'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
+                    'summary': _('Purchase Order Confirmation'),
+                    'user_id': user.id,
+                    'res_id': order.id,
+                    'res_model_id': self.env['ir.model']._get('purchase.order').id,
+                })
+        return super().action_button_prev_level()
+            
     def button_confirm(self):
         for order in self:
             if not order.order_line:
@@ -36,11 +53,14 @@ class PurchaseOrder(models.Model):
                     ], order="sequence asc")
                     
                     # raise UserError(_("Existing Levels: %s") % existing_levels.mapped('name'))
-                    existing_manager_levels = approval_level.search([
+                    existing_manager_levels = approval_level.with_context(active=False).search([
                         ('group_id', '=', order.approval_group_id.id),
                         ('user_ids', 'in', managers.ids)
                     ])
-
+                    if existing_manager_levels:
+                        existing_manager_levels.sudo().write({
+                            'active':True
+                        })
                     existing_manager_users = existing_manager_levels.mapped('user_ids')
                     new_managers = managers - existing_manager_users
 
@@ -78,9 +98,26 @@ class PurchaseOrder(models.Model):
                                 'res_id': order.id,
                                 'res_model_id': self.env['ir.model']._get('purchase.order').id,
                             })
+            order.button_lock()
         return super().button_confirm()
     
-
+    def button_approve(self):
+        for order in self:
+            levels = order.approval_group_id.level_ids
+            dept_managers = order.order_line.mapped('department_ids.manager_id.user_id')
+            filtered_levels = levels.filtered(lambda l: set(l.user_ids.ids) & set(dept_managers.ids))
+            filtered_levels.sudo().write({'active': False})
+            partners = dept_managers.mapped('partner_id')
+            partners |= order.create_uid.partner_id
+            # raise UserError(_("Filtered Levels: %s") % partners.mapped('name'))
+            order.message_post(
+                body=_("Purchase Order Approved"),
+                partner_ids=partners.ids,
+                subtype_xmlid='mail.mt_note'
+            )
+            order.button_lock()
+        return super().button_approve()
+            # raise UserError(_("Filtered Levels: %s") % filtered_levels.mapped('name'))
 class PurchaseOrderLine(models.Model):
     _inherit = "purchase.order.line"
     
@@ -88,7 +125,6 @@ class PurchaseOrderLine(models.Model):
         'hr.department',
         string="Departments",
         required=False,
-        default=lambda self: self.env.user.employee_id.department_id
     )
     
     amount_to_change = fields.Float(string="Amount to Change")
