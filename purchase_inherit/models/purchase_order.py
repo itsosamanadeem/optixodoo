@@ -262,7 +262,10 @@ class PurchaseOrder(models.Model):
                                 )
                             }
                         }
+                    else:
+                        self._post_budget_warning_actions()
                 elif configuration == 'allow':
+                    self._post_budget_warning_actions()
                     continue
                 
         return super().button_approve()
