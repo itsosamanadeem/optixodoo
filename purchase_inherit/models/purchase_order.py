@@ -287,5 +287,4 @@ class PurchaseOrder(models.Model):
             partner_ids=partners.ids,
             subtype_xmlid='mail.mt_note'
         )
-
         self.button_lock()
