@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- Report Action -->
+        <record id="action_report_gate_pass" model="ir.actions.report">
+            <field name="name">Gate Pass</field>
+            <field name="model">gate.pass</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">ol_gate_pass.report_gate_pass</field>
+            <field name="report_file">ol_gate_pass.report_gate_pass</field>
+            <field name="print_report_name">'Gate Pass - ' + object.name</field>
+            <field name="binding_type">report</field>
+        </record>
+
+        <!-- Report Template -->
+        <template id="report_gate_pass">
+             <t t-foreach="docs" t-as="o">
+
+  <t t-call="web.html_container">
+            <style>
+                @page {
+                    size: A5 landscape;
+                    margin: 5mm 10mm;
+                }
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 9pt;
+                    line-height: 1.2;
+                }
+                .header {
+                    text-align: center;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }
+                .header span {
+                    display: block;
+                }
+                .header .company-name {
+                    font-size: 12pt;
+                }
+                .report-title {
+                    text-align: center;
+                    font-size: 20pt;
+                    font-weight: bold;
+                    margin-top: 1px;
+                    border-bottom: 2px solid black;
+                    display: inline-block;
+                    padding-bottom: 1px;
+                }
+                .table-bordered {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }
+                .table-bordered th, .table-bordered td {
+                    border: 1px solid black;
+                    padding: 3px;
+                    text-align: center;
+                    font-size: 8pt;
+                }
+                .table-bordered th {
+                    background-color: #f2f2f2;
+                }
+                .signature-section {
+                    margin-top: 7%;
+                }
+                .signature-section strong {
+                    font-size: 9pt;
+                }
+            </style>
+            
+            <div class="header">
+                <div style="text-align: center; font-weight: bold;">
+                    <img t-if="docs[0].company_id.logo" t-att-src="image_data_uri(docs[0].company_id.logo)" style="max-height: 50px; margin-bottom: 3px;" alt="Logo"/>
+                    <div style="border: 1px solid black;"/>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 1px;">
+                <span class="report-title">Gate Pass</span>
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <t t-if="docs.name">
+                    <span><strong>G.P No:</strong> <t t-esc="docs.name"/></span>
+                </t>
+                <t t-if="docs.gate_pass_type">
+                    <div>
+                        <strong>Gate Pass Type:</strong> 
+                        <t t-if="docs.gate_pass_type == 'gate_in'">IGP</t>
+                        <t t-elif="docs.gate_pass_type == 'gate_out'">OGP</t>
+                        <t t-elif="docs.gate_pass_type == 'rgp'">RGP</t>
+                        <t t-else=""><t t-esc="docs.gate_pass_type"/></t>
+                    </div>
+                </t>
+                <t t-if="docs.pass_date">
+                    <t t-set="adjusted_time" t-value="docs.pass_date + datetime.timedelta(hours=5)"/>
+                    <span style="float: right;">
+                        <strong>Date:</strong>
+                        <t t-esc="adjusted_time.strftime('%d-%m-%Y %H:%M:%S')"/>
+                    </span>
+                </t>
+            </div>
+
+            <!-- <t t-if="docs.purchase_request_id.name">
+                <div><strong>PR No.:</strong> <t t-esc="docs.purchase_request_id.name"/></div>
+            </t> -->
+
+            <t t-if="docs.grn_document_id.name">
+                <div><strong>GRN Document:</strong> <t t-esc="docs.grn_document_id.name"/></div>
+            </t>
+
+          <t t-if="docs.origin">
+    <div>
+        <strong>
+            <t t-if="docs.gate_pass_type == 'gate_in'">PO No.:</t>
+            <t t-elif="docs.gate_pass_type == 'gate_out'">SO No.:</t>
+            <t t-else="">Reference:</t>
+        </strong> 
+        <t t-esc="docs.origin"/>
+    </div>
+</t>
+<t t-if="docs.invoice_names">
+    <div><strong>Invoice Reference:</strong> <t t-esc="docs.invoice_names"/></div>
+</t>
+<t t-else="">
+    <div><strong>Invoice Reference:</strong> N/A</div>
+</t>
+            <t t-if="docs.vendor_id.name">
+                <div><strong>Supplier Name:</strong> <t t-esc="docs.vendor_id.name"/></div>
+            </t>
+
+            <t t-if="docs.truck_no">
+                <div><strong>Truck No:</strong> <t t-esc="docs.truck_no"/></div>
+            </t>
+            
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Sr. No</th>
+                        <th>Description</th>
+                        <th>Qty / Weight</th>
+                        <th>UOM</th>
+                        <th>Confirmed Qty</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-if="docs.gate_pass_ids">
+                        <t t-set="total_quantity" t-value="0"/>
+                        <t t-set="total_confirmed_quantity" t-value="0"/>
+                        <t t-set="counter" t-value="0"/>
+                        <t t-foreach="docs.gate_pass_ids" t-as="line">
+                            <t t-set="counter" t-value="counter + 1"/>
+                            <t t-set="total_quantity" t-value="total_quantity + (line.quantity or 0)"/>
+                            <t t-set="total_confirmed_quantity" t-value="total_confirmed_quantity + (line.confirm_quantity or 0)"/>
+                            <tr>
+                                <td><t t-esc="counter"/></td>
+                                <td><t t-esc="line.description or ''"/></td>
+                                <td><t t-esc="line.quantity or 0"/></td>
+                                <td><t t-esc="line.product_uom.name or ''"/></td>
+                                <td><t t-esc="line.confirm_quantity or 0"/></td>
+                                <td><t t-esc="line.remarks or ''"/></td>
+                            </tr>
+                        </t>
+                        <tr>
+                            <td colspan="2"><strong>Total</strong></td>
+                            <td><strong><t t-esc="total_quantity"/></strong></td>
+                            <td/>
+                            <td><strong><t t-esc="total_confirmed_quantity"/></strong></td>
+                            <td/>
+                        </tr>
+                    </t>
+                    <t t-else="">
+                        <tr>
+                            <td colspan="6" style="text-align: center;">No records found</td>
+                        </tr>
+                    </t>
+                </tbody>
+            </table>
+            
+            <div class="signature-section">
+                <div style="display: flex; justify-content: space-between; margin-top: 10%;">
+                    <div style="text-align: left;">
+                        <strong>Received By: ________________________</strong>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>Security Incharge: ________________________</strong>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </t>     
+    <!-- </t> -->
+        </template>
+    </data>
+</odoo>

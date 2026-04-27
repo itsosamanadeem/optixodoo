@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stock_picking_form_for_gate_pass" model="ir.ui.view">
+        <field name="name">view.stock.picking.form.for.gate.pass</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <!-- Add the gate_pass field after the origin field -->
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="gate_pass"/>
+            </xpath>
+
+            <!-- Add the gate_pass_ids field with many2many_tags widget -->
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="gate_pass_ids" widget="many2many_tags"/>
+            </xpath>
+
+            <xpath expr="//div[@class='oe_button_box']" position="inside">
+                <button name="action_open_gatepass" string="Gate Pass"
+                    type="object"
+                    class="oe_stat_button" icon="fa-edit " >
+              
+                    <field name="gate_pass_count" widget="statinfo" options="{'always_reload': True}" />
+
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

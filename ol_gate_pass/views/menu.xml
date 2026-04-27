@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem  id="menu_gate_pass_root"
+                name="Gate Pass"
+                web_icon="ol_gate_pass,static/description/icon.png"
+                sequence="0"/>
+
+</odoo>

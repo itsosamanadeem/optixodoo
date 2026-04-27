@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="purchase_order_form_inherited_analytic_distribution" model="ir.ui.view">
+        <field name="name">purchase.order.form.inherit.analytic.distribution</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='reminder']" position="after">
+                <label for="analytic_distribution" groups="analytic.group_analytic_accounting"/>
+                <div name="div_analytic_distribution" groups="analytic.group_analytic_accounting">
+                    <field name="analytic_distribution_text" invisible='1' />
+                    <field name="analytic_account_ids" invisible="1" />
+                    <field name="analytic_distribution" widget="analytic_distribution" groups="analytic.group_analytic_accounting"/>
+                    <button class="btn btn-link"
+                        name="update_analytic_distribution" 
+                        invisible="state != 'draft'"
+                        groups="analytic.group_analytic_accounting"
+                        type="object"><i class="fa fa-refresh"/>Update Analytic
+                    </button>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='analytic_distribution']" position="attributes">
+                <attribute name="optional">show</attribute>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

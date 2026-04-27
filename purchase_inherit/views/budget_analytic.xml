@@ -1,0 +1,12 @@
+<odoo>
+    <record id="budget_analytic_form_view" model="ir.ui.view">
+        <field name="name">budget.analytic.form.view.inherit</field>
+        <field name="model">budget.analytic</field>
+        <field name="inherit_id" ref="account_budget.view_budget_analytic_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='budget_type']" position="after">
+                <field name="configuration" widget="radio" readonly="state != 'draft'"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
