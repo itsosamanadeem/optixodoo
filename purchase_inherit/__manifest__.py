@@ -18,6 +18,7 @@
                 'ml_purchase_approval',
                 'account',
                 'analytic',
+                'product',
     ],
     "data": [
         #security
@@ -26,6 +27,7 @@
         "security/ir.model.access.csv",
         
         #views
+        "views/product_product.xml",
         "views/budget_analytic.xml",
         "views/hr_department.xml",
         "views/approval_product_line.xml",
@@ -34,6 +36,7 @@
         
         #wizards
         "wizard/budget_wizard.xml",
+        "wizard/city_warning_wizard.xml",
     ],
     'assets': {
         'web.assets_backend': [

@@ -15,23 +15,23 @@ class PurchaseOrderLine(models.Model):
         # Keep the base analytic behavior, then auto-fill from department cost center.
         super()._compute_analytic_distribution()
         for rec in self:
-            if (rec.department_id.analytic_account_id or rec.department_id.analytic_city_id) and not rec.analytic_distribution:
-                rec.analytic_distribution = {f"{rec.department_id.analytic_account_id.id},{rec.department_id.analytic_city_id.id}": 100}
+            if (rec.department_id.analytic_account_id or rec.department_id.analytic_city_id) and not rec.analytic_distribution and rec.product_id.analytic_gl_id:
+                rec.analytic_distribution = {f"{rec.department_id.analytic_account_id.id},{rec.department_id.analytic_city_id.id},{rec.product_id.analytic_gl_id.id}": 100}
 
     @api.onchange('department_id')
     def _onchange_department_ids_set_analytic_distribution(self):
         """If exactly one department is selected, auto-fill from its cost center."""
         if 'analytic_distribution' not in self._fields:
             return
-        for line in self:
-            if len(line.department_id) != 1:
+        for rec in self:
+            if not rec.department_id:
                 continue
-            dept = line.department_id[:1]
-            aa = dept.analytic_account_id
-            ac = dept.analytic_city_id
+            aa = rec.department_id.analytic_account_id
+            ac = rec.department_id.analytic_city_id
+            gl_id = rec.product_id.analytic_gl_id
             if aa or ac:
-                line.analytic_distribution = {f"{aa.id},{ac.id}": 100}
-    
+                rec.analytic_distribution = {f"{aa.id},{ac.id},{gl_id.id}": 100}
+
     amount_to_change = fields.Float(string="Amount to Change")
 
     @api.depends('product_qty', 'product_uom_id', 'company_id', 'order_id.partner_id','amount_to_change')

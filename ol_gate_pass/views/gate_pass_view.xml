@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="group_edit_approval" model="res.groups">
+        <field name="name">Gate Pass Edit Approval</field>
+    </record>
+    <record id="group_edit_hidden" model="res.groups">
+        <field name="name">Gate Pass Edit Hidden</field>
+    </record>
+
+
+
+    <record id="gate_pass_tree" model="ir.ui.view">
+        <field name="name">gate.pass.tree</field>
+        <field name="model">gate.pass</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" />
+                <field name="vendor_id" widget="many2many_tags" />
+                <field name="truck_no" />
+                <field name="receiver" />
+                <field name="gate_pass_type" />
+                <field name="state" optional="show" widget="badge"
+                    decoration-success="state == 'posted'" decoration-info="state == 'draft'" />
+            </list>
+        </field>
+    </record>
+
+    <record id="gate_pass_form" model="ir.ui.view">
+        <field name="name">gate.pass.form</field>
+        <field name="model">gate.pass</field>
+        <field name="arch" type="xml">
+
+
+            <form string="Gate Pass">
+
+                <header>
+                    <field name="edit" invisible="1"/>
+
+                    <button
+                        name="button_confirm"
+                        invisible="state != 'draft'"
+                        string="Confirm"
+                        type="object"
+                        class="oe_highlight"
+                    />
+
+                    <button
+                        name="button_reset_to_draft"
+                        invisible="state != 'posted'"
+                        string="Reset To Draft"
+                        type="object"
+                        class="oe_highlight"
+                        groups="ol_gate_pass.group_edit_approval"
+                    />
+
+                    <button
+                        name="button_edit"
+                        invisible="state != 'posted' or edit==False"
+                        string="Edit"
+                        type="object"
+                        class="oe_highlight"
+                        groups="!ol_gate_pass.group_edit_hidden"
+                    />
+
+                    <!-- RGP Buttons -->
+                    <button
+                        name="action_mark_as_returned"
+                        string="Mark as Returned"
+                        type="object"
+                        class="btn-primary"
+                        invisible="gate_pass_type != 'rgp' or return_status != 'pending'"
+                    />
+                    <button
+                        name="action_mark_as_done"
+                        string="Mark as Done"
+                        type="object"
+                        class="btn-success"
+                        invisible="gate_pass_type != 'rgp' or return_status != 'returned'"
+                    />
+
+                    <field
+                        name="state"
+                        widget="statusbar"
+                        statusbar_visible="draft,posted"
+                        statusbar_colors='{"posted":"blue"}'
+                    />
+                </header>
+
+                <sheet>
+
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_picking" string="Grn Document" type="object"
+                            class="oe_stat_button" icon="fa-edit ">
+
+                            <span class="o_stat_value">
+                                <field name="grn_count" widget="statinfo"
+                                    options="{'always_reload': True}" />
+                            </span>
+                        </button>
+                    </div>
+
+                    <div class="oe_edit_only">
+                        <label for="name" class="oe_inline" />
+                    </div>
+                    <h1>
+                        <field name="name" class="oe_inline" readonly="1" force_save="1" />
+                    </h1>
+                    <group>
+                        <group>
+                            <field name="gate_pass_type" readonly="state == 'posted'" force_save="1" />
+                            <field name="vendor_ids" invisible="1" />
+                            <div class="o_td_label">
+                                <label for="vendor_id" string="Vendor" style="font-weight:bold;"
+                                    invisible="gate_pass_type == 'gate_out' or gate_pass_type == False" />
+                                <label for="vendor_id" string="Customer" style="font-weight:bold;"
+                                    invisible="gate_pass_type == 'gate_in' or gate_pass_type == False" />
+                                <label for="vendor_id" string="Partner" style="font-weight:bold;"
+                                    invisible="gate_pass_type != False" />
+                            </div>
+                            <field name="vendor_id" nolabel="1" readonly="state == 'posted'"
+                                force_save="1" widget="many2many_tags"
+                                domain="[('id','in',vendor_ids)]" />
+                            <field name="truck_no" readonly="state == 'posted'" force_save="1" />
+                            <field name="receiver" readonly="state == 'posted'" force_save="1" />
+                            <field name="product_ids" invisible="1" widget="many2many_tags" />
+                        </group>
+                        <group>
+                            <field name="picking_ids" invisible="1" />
+                            <div class="o_td_label">
+                                <label for="grn_document_id" string="GRN Document"
+                                    style="font-weight:bold;"
+                                    invisible="gate_pass_type == 'gate_out' or gate_pass_type == False" />
+                                <label for="grn_document_id" string="Delivery Order"
+                                    style="font-weight:bold;"
+                                    invisible="gate_pass_type == 'gate_in' or gate_pass_type == False" />
+                                <label for="grn_document_id" string="Picking"
+                                    style="font-weight:bold;" invisible="gate_pass_type != False" />
+                            </div>
+                            <field name="grn_document_id" nolabel="1" readonly="state == 'posted'"
+                                widget="many2many_tags" domain="[('id','in',picking_ids)]" />
+                            <field name="date_start" />
+                            <field name="pass_date" readonly="state == 'posted'" force_save="1" />
+                        </group>
+                        <!-- Return Details Section (Visible only for RGP) -->
+                        <group string="Return Details" invisible="gate_pass_type != 'rgp'">
+                            <field name="expected_return_date" />
+                            <field name="actual_return_date" />
+                            <field name="return_reason" />
+                            <field name="return_status" widget="statusbar"
+                                statusbar_visible="pending,returned,done" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Products">
+                            <field name="gate_pass_ids" readonly="state == 'posted'" force_save="1">
+                                <list editable="top">
+                                    <field name="product_id" readonly="1" force_save="1" />
+                                    <field name="other_item" />
+                                    <field name="description" />
+                                    <field name="product_uom" />
+                                    <field name="quantity" readonly="1" force_save="1" />
+                                    <field name="confirm_quantity" />
+                                    <field name="remarks" />
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+               <chatter/>
+    
+            </form>
+        </field>
+    </record>
+
+    <!-- search view -->
+    <record id="gate_pass_search" model="ir.ui.view">
+        <field name="name">gate.pass.search</field>
+        <field name="model">gate.pass</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" />
+                <field name="product_ids" />
+                <field name="gate_pass_type" />
+                <field name="vendor_id" />
+                <!-- <field name="purchase_request_id"/> -->
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_gate_pass">
+        <field name="name">Gate Pass</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">gate.pass</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Gate Pass!
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_gatepass" name="Gate Pass" action="action_gate_pass"
+        parent="menu_gate_pass_root" sequence="0" />
+
+</odoo>

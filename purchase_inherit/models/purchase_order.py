@@ -1,10 +1,10 @@
 from re import match
-
-from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
-from odoo.tools.float_utils import float_compare
+from odoo import models, fields, api, _ #type: ignore
+from odoo.exceptions import UserError, ValidationError #type: ignore
+from odoo.tools.float_utils import float_compare #type: ignore
 
 class PurchaseOrder(models.Model):
+    _name="purchase.order"
     _inherit = ["purchase.order",'mail.thread', 'mail.activity.mixin']
 
     department_id = fields.Many2one(
@@ -41,21 +41,95 @@ class PurchaseOrder(models.Model):
                     break
         return super().write(vals)
     
-    def action_button_prev_level(self):
+    def action_button_next_level(self):
+        res = super().action_button_next_level()
+
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+        model_id = self.env['ir.model']._get('purchase.order').id
+
         for order in self:
-            order.button_unlock()
-            group = self.env.ref('purchase_inherit.group_scm_user')
-            scm_users = group.user_ids
-            for user in scm_users:
-                self.env['mail.activity'].create({
-                    'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
-                    'summary': _('Purchase Order Confirmation'),
+            approval_level = order._get_next_approval_level()
+            if not approval_level:
+                continue
+
+            users = approval_level.user_ids.filtered(lambda u: u)
+
+            activities_vals = []
+            for user in users:
+                activities_vals.append({
+                    'activity_type_id': activity_type.id,
+                    'summary': 'Purchase Order Recommendation Required',
+                    'note': f'Please review and recommend PO {order.name}',
                     'user_id': user.id,
                     'res_id': order.id,
-                    'res_model_id': self.env['ir.model']._get('purchase.order').id,
+                    'res_model_id': model_id,
                 })
-        return super().action_button_prev_level()
-            
+
+            if activities_vals:
+                self.env['mail.activity'].create(activities_vals)
+
+        return res
+        
+    def action_button_prev_level(self):
+        self.ensure_one()
+
+        if not self.approval_group_id:
+            raise UserError('Please select an approval group first!')
+
+        approval_level = self._get_prev_approval_level()
+        if not approval_level:
+            raise UserError('Previous Recommendation Level Not Set!')
+
+        # Get SCM users
+        scm_group = self.env.ref('purchase_inherit.group_scm_user')
+        scm_users = scm_group.user_ids
+
+        # Users in approval level
+        level_users = approval_level.user_ids
+
+        # ✅ Intersection (THIS is what you need)
+        matched_users = level_users & scm_users
+
+        if not matched_users:
+            raise UserError('No SCM user found in this approval level!')
+
+        # (Optional) create activities only for matched users
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+        model_id = self.env['ir.model']._get('purchase.order').id
+
+        activities_vals = []
+        for user in matched_users:
+            activities_vals.append({
+                'activity_type_id': activity_type.id,
+                'summary': 'Purchase Order Returned',
+                'note': f'PO {self.name} requires your review again',
+                'user_id': user.id,
+                'res_id': self.id,
+                'res_model_id': model_id,
+            })
+
+        if activities_vals:
+            self.env['mail.activity'].create(activities_vals)
+
+        # ✅ Pass correct level
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Add Comments',
+            'res_model': 'ml.returned.comment.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_purchase_order_id': self.id,
+                'default_approval_level_id': approval_level.id,
+            }
+        }
+    
+    def button_draft(self):
+        res = super().button_draft()
+        for rec in self:
+            rec.current_approval_level_id = None
+        return res
+        
     def button_confirm(self):
         for order in self:
             ctx = dict(self.env.context)
@@ -143,8 +217,14 @@ class PurchaseOrder(models.Model):
                     raise UserError(_(
                         "Please set an analytic account for department '%s'."
                     ) % (line.department_id.name or 'Unknown'))
+                
+                if not line.product_id.analytic_gl_id:
+                    raise UserError(_(
+                        "Please set analytic GL for this product '%s'."
+                    )% (line.product_id.analytic_gl_id))
                 ac = self.env['budget.line'].sudo().search([
                     ('account_id', '=', line.department_id.analytic_account_id.id),
+                    ('x_plan10_id','=',line.product_id.analytic_gl_id),
                     ('budget_analytic_id.state','=','done')
                 ], limit=1)
                 # raise UserError(_("Analytic Account: %s") % ac.b)
@@ -184,19 +264,28 @@ class PurchaseOrder(models.Model):
                         }
                 elif configuration == 'allow':
                     continue
-
-            # 📧 Email Notification Logic
-            levels = order.approval_group_id.level_ids
-            dept_managers = order.order_line.mapped('department_id.manager_id.user_id')
-            filtered_levels = levels.filtered(lambda l: set(l.user_ids.ids) & set(dept_managers.ids))
-            filtered_levels.sudo().write({'active': False})
-            partners = dept_managers.mapped('partner_id')
-            partners |= order.create_uid.partner_id
-            # raise UserError(_("Filtered Levels: %s") % partners.mapped('name'))
-            order.message_post(
-                body=_("Purchase Order Approved"),
-                partner_ids=partners.ids,
-                subtype_xmlid='mail.mt_note'
-            )
-            order.button_lock()
+                
         return super().button_approve()
+    
+    def _post_budget_warning_actions(self):
+        self.ensure_one()
+
+        levels = self.approval_group_id.level_ids
+        dept_managers = self.order_line.mapped('department_id.manager_id.user_id')
+
+        filtered_levels = levels.filtered(
+            lambda l: set(l.user_ids.ids) & set(dept_managers.ids)
+        )
+
+        filtered_levels.sudo().write({'active': False})
+
+        partners = dept_managers.mapped('partner_id')
+        partners |= self.create_uid.partner_id
+
+        self.message_post(
+            body=_("Purchase Order Approved with Budget Warning"),
+            partner_ids=partners.ids,
+            subtype_xmlid='mail.mt_note'
+        )
+
+        self.button_lock()

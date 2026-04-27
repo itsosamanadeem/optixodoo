@@ -2,3 +2,6 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_budget_warning_wizard_user,Budget Warning Wizard User,model_budget_warning_wizard,purchase_inherit.group_scm_user,1,1,1,1
 access_budget_warning_wizard_manager,Budget Warning Wizard Manager,model_budget_warning_wizard,purchase_inherit.group_scm,1,1,1,1
 access_budget_warning_wizard_ceo,Budget Warning Wizard CEO,model_budget_warning_wizard,purchase_inherit.group_ceo,1,1,1,1
+access_city_warning_wizard_user,City Warning Wizard User,model_city_warning_wizard,purchase_inherit.group_scm_user,1,1,1,1
+access_city_warning_wizard_manager,City Warning Wizard Manager,model_city_warning_wizard,purchase_inherit.group_scm,1,1,1,1
+access_city_warning_wizard_ceo,City Warning Wizard CEO,model_city_warning_wizard,purchase_inherit.group_ceo,1,1,1,1
