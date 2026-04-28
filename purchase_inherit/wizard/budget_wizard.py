@@ -12,7 +12,6 @@ class BudgetWarningWizard(models.TransientModel):
         order = self.order_id.with_context(skip_budget_check=True)
         
         order.button_approve()
-        order._post_budget_warning_actions()
 
         return {'type': 'ir.actions.act_window_close'}
 
