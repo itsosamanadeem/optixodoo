@@ -4,6 +4,12 @@
         <field name="model">approval.request</field>
         <field name="inherit_id" ref="approvals.approval_request_view_form"/>
         <field name="arch" type="xml">
+            <xpath expr="/form//button[@name='action_open_purchase_orders']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+            <xpath expr="/form//field[@name='purchase_order_count']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
             <xpath expr="/form/header/button[@name='action_confirm'][2]" position="attributes">
                 <attribute name="invisible">purchase_order_count &gt;= 1 or attachment_number &gt;= 1 or request_status != 'new'</attribute>
             </xpath>
