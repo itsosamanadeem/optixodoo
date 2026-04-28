@@ -25,7 +25,7 @@ class ApprovalProductLine(models.Model):
         string='Departments',
         domain=_domain_department_id_for_user,
     )
-    product_gl_description = fields.Text(string="Product Description", readonly=True)
+    product_gl_description = fields.Text(string="GL", readonly=True, store=True)
     
     @api.onchange('product_id')
     def product_gl_onchange(self):
@@ -151,8 +151,11 @@ class ApprovalForm(models.Model):
 
         return super().action_confirm()
 
+    def action_create_purchase_orders(self):
+        return super(ApprovalForm, self.sudo()).action_create_purchase_orders()
+    
     def _create_purchase_orders(self):
-        res = super()._create_purchase_orders()
+        res = super(ApprovalForm, self.sudo())._create_purchase_orders()
 
         for line in self.product_line_ids:
             if line.purchase_order_line_id:
@@ -161,3 +164,26 @@ class ApprovalForm(models.Model):
                 po_line.analytic_distribution = line.analytic_distribution
 
         return res
+    
+    # def _create_purchase_orders(self):
+    #     # Run full logic in sudo
+    #     res = super(type(self), self.sudo())._create_purchase_orders()
+
+    #     # Now safely update extra fields
+    #     for line in self.product_line_ids:
+    #         if line.purchase_order_line_id:
+    #             po_line = line.purchase_order_line_id.sudo()
+    #             po = po_line.order_id.sudo()
+
+    #             # Update PO Line fields
+    #             po_line.write({
+    #                 'department_id': line.department_id.id,
+    #                 'analytic_distribution': line.analytic_distribution,
+    #             })
+
+    #             # Update Purchase Order field
+    #             po.write({
+    #                 'is_sent_back': True
+    #             })
+
+    #     return res

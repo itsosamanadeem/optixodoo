@@ -13,7 +13,7 @@ class PurchaseOrder(models.Model):
         required=False,
         default=lambda self: self.env.user.employee_id.department_id
     )
-    is_sent_back = fields.Boolean(string="Sent Back", default=True, readonly=True)
+    is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True)
     department_manager_ids = fields.Many2many(
         'res.users',
         'po_department_manager_rel',   # table name
