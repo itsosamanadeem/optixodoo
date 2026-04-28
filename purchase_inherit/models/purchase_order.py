@@ -268,7 +268,6 @@ class PurchaseOrder(models.Model):
                     self._post_budget_warning_actions()
                     continue
                 
-                
         return super().button_approve()
     
     def _post_budget_warning_actions(self):
