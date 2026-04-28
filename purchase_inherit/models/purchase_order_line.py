@@ -10,6 +10,12 @@ class PurchaseOrderLine(models.Model):
         string="Departments",
         required=False,
     )
+    
+    def write(self, vals):
+        if not self.order_id.is_sent_back:
+            raise UserError("Cannot modify sent-back orders.")
+        return super().write(vals)
+
     @api.depends('department_id')
     def _compute_analytic_distribution(self):
         # Keep the base analytic behavior, then auto-fill from department cost center.

@@ -215,5 +215,6 @@ class PurchaseOrder(models.Model):
                         }
                 elif configuration == 'allow':
                     continue
-                
+            
+            order.is_sent_back = False    
         return super().button_approve()
