@@ -41,7 +41,7 @@ class PurchaseOrder(models.Model):
         self.ensure_one()
         if self.env.user not in self.department_manager_ids:
             raise UserError("You are not allowed to approve this.")
-        self.write({
+        self.sudo().write({
             'department_manager_approved_ids': [(4, self.env.user.id)]
         })
         activities = self.env['mail.activity'].sudo().search([

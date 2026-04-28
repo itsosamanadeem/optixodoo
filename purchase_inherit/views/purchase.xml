@@ -5,7 +5,7 @@
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="/form/header/field[@name='state']" position="after">
-                <button name="action_approve" string="Manager Approval" type="object" groups="purchase.group_purchase_user"/>
+                <button name="action_approve" string="Manager Approval" type="object" groups="purchase.group_purchase_user,!purchase_inherit.group_scm_user,!purchase_inherit.group_scm,!purchase_inherit.group_ceo"/>
             </xpath>
             <xpath expr="/form//field[@name='date_order']" position="after">
                 <field name="department_manager_ids" widget="many2many_tags"/>
