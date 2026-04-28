@@ -4,6 +4,15 @@
         <field name="model">purchase.order</field>
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
+            <xpath expr="/form/header/field[@name='state']" position="after">
+                <button name="action_approve" string="Manager Approval" type="object" groups="purchase.group_purchase_user"/>
+            </xpath>
+            <xpath expr="/form//field[@name='date_order']" position="after">
+                <field name="department_manager_ids" widget="many2many_tags"/>
+            </xpath>
+            <xpath expr="/form//field[@name='department_manager_ids']" position="after">
+                <field name="department_manager_approved_ids" widget="many2many_tags"/>
+            </xpath>
             <xpath expr="/form//div[@name='reminder']" position="after">
                 <field name="department_id" readonly="1"/>
             </xpath>

@@ -13,8 +13,44 @@ class PurchaseOrder(models.Model):
         required=False,
         default=lambda self: self.env.user.employee_id.department_id
     )
-    is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True)
+    is_sent_back = fields.Boolean(string="Sent Back", default=True, readonly=True)
+    department_manager_ids = fields.Many2many(
+        'res.users',
+        'po_department_manager_rel',   # table name
+        'order_id',                   # this model column
+        'user_id',                    # comodel column
+        string="Department Managers",
+        readonly=True
+    )
 
+    department_manager_approved_ids = fields.Many2many(
+        'res.users',
+        'po_department_manager_approved_rel',  # DIFFERENT table
+        'order_id',
+        'user_id',
+        string="Manager Approvals",
+        copy=False,
+        readonly=True
+    )
+
+    def _get_department_managers(self):
+        self.ensure_one()
+        return self.order_line.mapped('department_id.manager_id.user_id').filtered(lambda u: u)
+    
+    def action_approve(self):
+        self.ensure_one()
+        if self.env.user not in self.department_manager_ids:
+            raise UserError("You are not allowed to approve this.")
+        self.write({
+            'department_manager_approved_ids': [(4, self.env.user.id)]
+        })
+        activities = self.env['mail.activity'].sudo().search([
+            ('res_id', '=', self.id),
+            ('user_id', '=', self.env.user.id),
+            ('res_model', '=', 'purchase.order')
+        ])
+        activities.action_done()
+    
     @api.model_create_multi
     def create(self, vals_list):
         # Some flows (e.g. approvals→purchase bridges / custom code) can create a PO without
@@ -72,33 +108,17 @@ class PurchaseOrder(models.Model):
         
     def action_button_prev_level(self):
         self.ensure_one()
-
         if not self.approval_group_id:
             raise UserError('Please select an approval group first!')
-
         approval_level = self._get_prev_approval_level()
         if not approval_level:
             raise UserError('Previous Recommendation Level Not Set!')
-
-        # Get SCM users
         scm_group = self.env.ref('purchase_inherit.group_scm_user')
         scm_users = scm_group.user_ids
-
-        # Users in approval level
-        level_users = approval_level.user_ids
-
-        # ✅ Intersection (THIS is what you need)
-        matched_users = level_users & scm_users
-
-        if not matched_users:
-            raise UserError('No SCM user found in this approval level!')
-
-        # (Optional) create activities only for matched users
         activity_type = self.env.ref('mail.mail_activity_data_todo')
         model_id = self.env['ir.model']._get('purchase.order').id
-
         activities_vals = []
-        for user in matched_users:
+        for user in scm_users:
             activities_vals.append({
                 'activity_type_id': activity_type.id,
                 'summary': 'Purchase Order Returned',
@@ -107,11 +127,8 @@ class PurchaseOrder(models.Model):
                 'res_id': self.id,
                 'res_model_id': model_id,
             })
-
         if activities_vals:
             self.env['mail.activity'].create(activities_vals)
-
-        # ✅ Pass correct level
         return {
             'type': 'ir.actions.act_window',
             'name': 'Add Comments',
@@ -135,82 +152,23 @@ class PurchaseOrder(models.Model):
             ctx = dict(self.env.context)
             if order.state == 'draft':
                 ctx.update({'skip_budget_check': True})
-
             order = order.with_context(ctx)
-            
             if not order.order_line:
                 raise UserError(_("Please add at least one line to confirm the purchase order."))
-
-            managers = self.env['res.users']
-            for line in order.order_line:
-                if line.department_id:
-                    managers |= line.department_id.mapped('manager_id.user_id').filtered(lambda u:u)
-            
-            if order.is_sent_back and line.amount_to_change:
-                for manager in managers:
-                    if not manager:
-                        raise UserError(_("A department manager has no linked user."))
-                    
-                    approval_level = self.env['ml.approval.level']
-
-                    existing_levels = approval_level.search([
-                        ('group_id', '=', order.approval_group_id.id)
-                    ], order="sequence asc")
-                    
-                    # raise UserError(_("Existing Levels: %s") % existing_levels.mapped('name'))
-                    existing_manager_levels = approval_level.with_context(active=False).search([
-                        ('group_id', '=', order.approval_group_id.id),
-                        ('user_ids', 'in', managers.ids)
-                    ])
-                    if existing_manager_levels:
-                        existing_manager_levels.sudo().write({
-                            'active':True
-                        })
-                    existing_manager_users = existing_manager_levels.mapped('user_ids')
-                    new_managers = managers - existing_manager_users
-
-                    if new_managers:
-                        shift_by = len(new_managers)
-
-                        # STEP 1: Temporarily move existing sequences out of range
-                        # (avoid unique constraint collision)
-                        temp_offset = 1000  # large safe gap
-                        for level in existing_levels:
-                            level.sudo().write({'sequence': level.sequence + temp_offset})
-
-                        # STEP 2: Assign final shifted sequence
-                        for level in existing_levels:
-                            level.sudo().write({'sequence': level.sequence - temp_offset + shift_by})
-
-                        # STEP 3: Insert new managers at top
-                        for i, manager in enumerate(new_managers, start=1):
-                            approval_level.sudo().create({
-                                'name': f'Approval for {order.name}',
-                                'sequence': i,
-                                'group_id': order.approval_group_id.id,
-                                'min_amount': 0,
-                                'max_amount': 1,
-                                'is_recommendation': True,
-                                'is_approval': False,
-                                'user_ids': [(4, manager.id)],
-                            })
-
-                            # Activity
-                            self.env['mail.activity'].create({
-                                'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
-                                'summary': _('Purchase Order Confirmation'),
-                                'user_id': manager.id,
-                                'res_id': order.id,
-                                'res_model_id': self.env['ir.model']._get('purchase.order').id,
-                            })
+            order.is_sent_back = False
             order.button_lock()
-        return super(PurchaseOrder, self.with_context(ctx)).button_confirm()
+        return super(PurchaseOrder, self.with_context(ctx)).button_confirm() #type:ignore
     
     def button_approve(self):
+        
         if self.env.context.get('skip_budget_check'):
             return super().button_approve()
         
         for order in self:
+            if (order.is_sent_back and order.department_manager_ids and order.order_line.filtered(lambda l: l.amount_to_change)):
+                if set(order.department_manager_ids.ids) != set(order.department_manager_approved_ids.ids):
+                    raise UserError(_("All department managers must approve first."))
+                
             # budget logic per line
             for line in order.order_line:
                 if not line.department_id or not line.department_id.analytic_city_id:
@@ -227,19 +185,15 @@ class PurchaseOrder(models.Model):
                     ('x_plan10_id','=',line.product_id.analytic_gl_id),
                     ('budget_analytic_id.state','=','done')
                 ], limit=1)
-                # raise UserError(_("Analytic Account: %s") % ac.b)
                 if not ac or not ac.budget_analytic_id:
-                    raise UserError(_(
-                        "No budget configuration found for the analytic account '%s'."
-                    ) % line.department_id.analytic_account_id.name)
+                    raise UserError(_("No budget configuration found for the analytic account '%s'.") % line.department_id.analytic_account_id.name)
                 configuration = ac.budget_analytic_id.sudo().configuration
                 
                 if configuration == 'restrict':
                     if ac.budget_amount < line.price_subtotal:
                         raise ValidationError(_(
                             "The total amount of the purchase order exceeds the available budget "
-                            "for the department '%s'."
-                        ) % line.department_id.name)
+                            "for the department '%s'.") % line.department_id.name)
                 elif configuration == 'warning':
                     if ac.budget_amount < line.price_subtotal:
                         return {
@@ -264,28 +218,6 @@ class PurchaseOrder(models.Model):
                         }
                 elif configuration == 'allow':
                     continue
-                
+            
+            order.is_sent_back = False    
         return super().button_approve()
-    
-    def _post_budget_warning_actions(self):
-        self.ensure_one()
-
-        levels = self.approval_group_id.level_ids
-        dept_managers = self.order_line.mapped('department_id.manager_id.user_id')
-
-        filtered_levels = levels.filtered(
-            lambda l: set(l.user_ids.ids) & set(dept_managers.ids)
-        )
-
-        filtered_levels.sudo().write({'active': False})
-
-        partners = dept_managers.mapped('partner_id')
-        partners |= self.create_uid.partner_id
-
-        self.message_post(
-            body=_("Purchase Order Approved with Budget Warning"),
-            partner_ids=partners.ids,
-            subtype_xmlid='mail.mt_note'
-        )
-
-        self.button_lock()
