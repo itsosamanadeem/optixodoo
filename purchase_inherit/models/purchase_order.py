@@ -20,6 +20,7 @@ class PurchaseOrder(models.Model):
         'order_id',                   # this model column
         'user_id',                    # comodel column
         string="Department Managers",
+        readonly=True
     )
 
     department_manager_approved_ids = fields.Many2many(
@@ -28,7 +29,8 @@ class PurchaseOrder(models.Model):
         'order_id',
         'user_id',
         string="Manager Approvals",
-        copy=False
+        copy=False,
+        readonly=True
     )
 
     def _get_department_managers(self):
