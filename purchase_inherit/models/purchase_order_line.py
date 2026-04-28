@@ -1,6 +1,6 @@
-from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
-from odoo.tools.float_utils import float_compare
+from odoo import models, fields, api, _ #type:ignore
+from odoo.exceptions import UserError, ValidationError #type:ignore
+from odoo.tools.float_utils import float_compare #type:ignore
 
 class PurchaseOrderLine(models.Model):
     _inherit = "purchase.order.line"
@@ -32,11 +32,13 @@ class PurchaseOrderLine(models.Model):
             if aa or ac:
                 rec.analytic_distribution = {f"{aa.id},{ac.id},{gl_id.id}": 100}
 
-    amount_to_change = fields.Float(string="Amount to Change")
+    amount_to_change = fields.Float(string="Amount to Change", store=True)
+        
+    @api.onchange('product_id', 'product_qty', 'amount_to_change')
+    def _change_price_unit(self):
+        for rec in self:
+            if not rec.product_qty:
+                continue
 
-    @api.depends('product_qty', 'product_uom_id', 'company_id', 'order_id.partner_id','amount_to_change')
-    def _compute_price_unit_and_date_planned_and_name(self):
-        super()._compute_price_unit_and_date_planned_and_name()
-        for line in self:
-            if line.amount_to_change:
-                line.price_unit += line.amount_to_change / line.product_uom_id._compute_quantity(line.product_qty, line.product_id.uom_id)
+            base_price = rec.product_id.standard_price or 0
+            rec.price_unit = base_price + (rec.amount_to_change / rec.product_qty)

@@ -146,7 +146,7 @@ class PurchaseOrder(models.Model):
                 if line.department_id:
                     managers |= line.department_id.mapped('manager_id.user_id').filtered(lambda u:u)
             
-            if order.is_sent_back and line.amount_to_change:
+            if order.is_sent_back and line.amount_to_change: #type:ignore
                 for manager in managers:
                     if not manager:
                         raise UserError(_("A department manager has no linked user."))
@@ -204,7 +204,7 @@ class PurchaseOrder(models.Model):
                                 'res_model_id': self.env['ir.model']._get('purchase.order').id,
                             })
             order.button_lock()
-        return super(PurchaseOrder, self.with_context(ctx)).button_confirm()
+        return super(PurchaseOrder, self.with_context(ctx)).button_confirm() #type:ignore
     
     def button_approve(self):
         if self.env.context.get('skip_budget_check'):
