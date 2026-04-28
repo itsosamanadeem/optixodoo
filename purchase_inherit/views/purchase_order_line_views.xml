@@ -9,7 +9,7 @@
                 <field optional="show" name="department_id"/>
             </xpath>
             <xpath expr="/form/sheet/notebook/page[@name='products']/field[@name='order_line']/list//field[@name='price_subtotal']" position="before">
-                <field optional="show" name="amount_to_change"/>
+                <field optional="show" name="amount_to_change" readonly="not order_id.is_sent_back"/>
             </xpath>
         </field>
     </record>

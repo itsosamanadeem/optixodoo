@@ -41,4 +41,4 @@ class PurchaseOrderLine(models.Model):
                 continue
 
             base_price = rec.product_id.standard_price or 0
-            rec.price_unit = base_price + (rec.amount_to_change / rec.product_qty)
+            rec.price_unit = base_price + rec.amount_to_change

@@ -1,5 +1,5 @@
-from odoo import models, fields, api
-from odoo.exceptions import UserError
+from odoo import models, fields, api #type:ignore
+from odoo.exceptions import UserError #type:ignore
 
 class ReturnedCommentWizard(models.TransientModel):
     _inherit = 'ml.returned.comment.wizard'
@@ -10,10 +10,11 @@ class ReturnedCommentWizard(models.TransientModel):
         if not self.comment:
             raise UserError('Please enter comments before proceeding.')
         order = self.purchase_order_id
+        managers = order._get_department_managers()
         order.write({
             'is_sent_back': True,
-            'state': 'draft',
-            'current_approval_level_id': False
+            'department_manager_ids': [(6, 0, managers.ids)],
+            'department_manager_approved_ids': [(5, 0, 0)]
         })
         
         return {'type': 'ir.actions.act_window_close'}
