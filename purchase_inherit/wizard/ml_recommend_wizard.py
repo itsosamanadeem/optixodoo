@@ -13,6 +13,7 @@ class ApprovalCommentWizardInherit(models.TransientModel):
         lines_with_change = order.order_line.filtered(lambda l: l.amount_to_change)
 
         if managers and lines_with_change:
+            order.is_sent_back = True
             activity_type = self.env.ref('mail.mail_activity_data_todo')
 
             for user in managers:

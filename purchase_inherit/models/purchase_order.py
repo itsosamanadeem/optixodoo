@@ -13,7 +13,7 @@ class PurchaseOrder(models.Model):
         required=False,
         default=lambda self: self.env.user.employee_id.department_id
     )
-    is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True)
+    is_sent_back = fields.Boolean(string="Sent Back", default=True, readonly=True)
     department_manager_ids = fields.Many2many(
         'res.users',
         'po_department_manager_rel',   # table name
@@ -155,6 +155,7 @@ class PurchaseOrder(models.Model):
             order = order.with_context(ctx)
             if not order.order_line:
                 raise UserError(_("Please add at least one line to confirm the purchase order."))
+            order.is_sent_back = False
             order.button_lock()
         return super(PurchaseOrder, self.with_context(ctx)).button_confirm() #type:ignore
     
