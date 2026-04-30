@@ -1,4 +1,4 @@
-name: Deploy and Restart odoo19-web-1 Container
+name: Deploy and Restart odoo19-web-1 Container Live
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
           cd ~/odoo19/custom-addons
           git pull origin main
 
-      - name: Restart Docker container odoo19-web-1
+      - name: Restart Docker container odoo19-web-1 Live
         run: |
           echo "Restarting Docker container..."
           docker restart odoo19-web-1
