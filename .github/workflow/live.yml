@@ -1,37 +1,22 @@
-name: Deploy on Merge to Main
+name: Deploy and Restart odoo19-web-1 Container
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      - closed   # fires when PR is closed (merged or not)
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging'
     runs-on: self-hosted
-
     steps:
-      - name: Validate branch
+      - name: Ensure repo is initialized
         run: |
-          echo "Merged from: ${{ github.event.pull_request.head.ref }}"
-          echo "Into: ${{ github.event.pull_request.base.ref }}"
-
-      - name: Pull latest code from main
-        run: |
-          echo "Updating code..."
+          echo "Pulling Changes...."
+          REPO_URL=git@github.com:itsosamanadeem/optixodoo.git
           cd ~/odoo19/custom-addons
-          git fetch origin
-          git checkout main
-          git reset --hard origin/main
+          git pull origin main
 
-      - name: Restart Odoo container
+      - name: Restart Docker container odoo19-web-1
         run: |
-          echo "Restarting container..."
+          echo "Restarting Docker container..."
           docker restart odoo19-web-1
-
-      - name: Verify container is running
-        run: |
-          sleep 5
-          docker ps | grep odoo19-web-1 || (echo "Container failed!" && exit 1)
