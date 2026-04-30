@@ -1,4 +1,4 @@
-name: Deploy and Restart odoo19-web-1 Container Live
+name: Deploy and Restart odoo19-web-1 Container
 
 on:
   push:
