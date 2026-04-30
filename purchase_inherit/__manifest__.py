@@ -2,7 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 {
-    'name': 'Purchase Inherit Approval Chain',
+    'name': 'Purchase Approval Chain',
     'version': '1.2',
     'category': 'Customizations',
     'sequence': -100,
