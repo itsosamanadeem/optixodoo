@@ -1,5 +1,5 @@
-from odoo import models, fields, _, api
-from odoo.exceptions import UserError
+from odoo import models, fields, _, api #type:ignore
+from odoo.exceptions import UserError #type:ignore
 import json
 import logging
 _logger = logging.getLogger(__name__)
@@ -84,28 +84,21 @@ class ApprovalForm(models.Model):
 
     def action_confirm(self):
         skip_city_check = self.env.context.get('skip_city_check')
-
         for request in self:
-
             departments = request.product_line_ids.mapped('department_id')
             approvers_to_add = []
-
             for department in departments:
                 if not department:
                     continue
-
                 manager_employee = department.manager_id
                 if not manager_employee:
                     raise UserError(_("Department '%s' has no manager assigned.") % department.name)
-
                 manager_user = manager_employee.user_id
                 if not manager_user:
                     raise UserError(
                         _("Manager '%s' of department '%s' has no linked user.")
                         % (manager_employee.name, department.name)
                     )
-
-                # ✅ City validation (skip only when coming from wizard)
                 if not skip_city_check and department.analytic_city_id.name == '000':
                     return {
                         'type': 'ir.actions.act_window',
@@ -125,16 +118,11 @@ class ApprovalForm(models.Model):
                             )
                         }
                     }
-
-                # ✅ Collect approvers (avoid duplicates)
                 if manager_user.id not in request.approver_ids.mapped('user_id').ids:
                     approvers_to_add.append(manager_user.id)
-
-            # ✅ Add approvers AFTER loop (safe & deterministic)
             if approvers_to_add:
                 existing_sequences = request.approver_ids.mapped('sequence')
                 next_sequence = max(existing_sequences, default=0) + 1
-
                 request.sudo().write({
                     'approver_ids': [
                         (0, 0, {
@@ -144,46 +132,60 @@ class ApprovalForm(models.Model):
                         }) for i, uid in enumerate(approvers_to_add)
                     ]
                 })
-
-            # ✅ Final safety check (critical)
             if not request.approver_ids:
                 raise UserError(_("You must have at least one approver before confirming."))
-
         return super().action_confirm()
 
     def action_create_purchase_orders(self):
-        return super(ApprovalForm, self.sudo()).action_create_purchase_orders()
+        res = super(ApprovalForm, self.sudo()).action_create_purchase_orders()
+        self._create_activity()
+        if self.env.user.has_group('purchase_inherit.group_scm_user'):
+            for rec in self:
+                rec._mark_scm_activities_done()
+        return res
     
     def _create_purchase_orders(self):
         res = super(ApprovalForm, self.sudo())._create_purchase_orders()
-
         for line in self.product_line_ids:
             if line.purchase_order_line_id:
                 po_line = line.purchase_order_line_id
                 po_line.department_id = line.department_id
                 po_line.analytic_distribution = line.analytic_distribution
-
         return res
     
-    # def _create_purchase_orders(self):
-    #     # Run full logic in sudo
-    #     res = super(type(self), self.sudo())._create_purchase_orders()
+    def _create_activity(self):        
+        scm_group = self.env.ref('purchase_inherit.group_scm_user')
+        scm_users = scm_group.user_ids
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+        model_id = self.env['ir.model']._get('approval.request').id
+        for request in self:
+            for user in scm_users:
+                # Create Activity
+                self.env['mail.activity'].create({
+                    'activity_type_id': activity_type.id,
+                    'summary': 'New Purchase Request',
+                    'note': f'PR {request.name} requires SCM review',
+                    'user_id': user.id,
+                    'res_id': request.id,
+                    'res_model_id': model_id,
+                })
+                # Send Email
+                if user.partner_id.email:
+                    request.message_post(
+                        body=f"New Purchase Request {request.name} requires your review.",
+                        partner_ids=[user.partner_id.id],
+                        subtype_xmlid="mail.mt_comment",
+                    )
+    
+    def _mark_scm_activities_done(self):
+        scm_group = self.env.ref('purchase_inherit.group_scm_user')
+        scm_user_ids = scm_group.users.ids
 
-    #     # Now safely update extra fields
-    #     for line in self.product_line_ids:
-    #         if line.purchase_order_line_id:
-    #             po_line = line.purchase_order_line_id.sudo()
-    #             po = po_line.order_id.sudo()
+        activities = self.env['mail.activity'].search([
+            ('res_model', '=', 'approval.request'),
+            ('res_id', '=', self.id),
+            ('user_id', 'in', scm_user_ids),
+            ('activity_type_id', '=', self.env.ref('mail.mail_activity_data_todo').id)
+        ])
 
-    #             # Update PO Line fields
-    #             po_line.write({
-    #                 'department_id': line.department_id.id,
-    #                 'analytic_distribution': line.analytic_distribution,
-    #             })
-
-    #             # Update Purchase Order field
-    #             po.write({
-    #                 'is_sent_back': True
-    #             })
-
-    #     return res
+        activities.action_done()
