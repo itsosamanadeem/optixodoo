@@ -13,7 +13,7 @@ class PurchaseOrder(models.Model):
         required=False,
         default=lambda self: self.env.user.employee_id.department_id
     )
-    is_sent_back = fields.Boolean(string="Sent Back", default=True, readonly=True)
+    is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True)
     department_manager_ids = fields.Many2many(
         'res.users',
         'po_department_manager_rel',   # table name
@@ -41,7 +41,7 @@ class PurchaseOrder(models.Model):
         self.ensure_one()
         if self.env.user not in self.department_manager_ids:
             raise UserError("You are not allowed to approve this.")
-        self.write({
+        self.sudo().write({
             'department_manager_approved_ids': [(4, self.env.user.id)]
         })
         activities = self.env['mail.activity'].sudo().search([
