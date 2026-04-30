@@ -1,0 +1,37 @@
+name: Deploy on Merge to Main
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed   # fires when PR is closed (merged or not)
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging'
+    runs-on: self-hosted
+
+    steps:
+      - name: Validate branch
+        run: |
+          echo "Merged from: ${{ github.event.pull_request.head.ref }}"
+          echo "Into: ${{ github.event.pull_request.base.ref }}"
+
+      - name: Pull latest code from main
+        run: |
+          echo "Updating code..."
+          cd ~/odoo19/custom-addons
+          git fetch origin
+          git checkout main
+          git reset --hard origin/main
+
+      - name: Restart Odoo container
+        run: |
+          echo "Restarting container..."
+          docker restart odoo19-web-1
+
+      - name: Verify container is running
+        run: |
+          sleep 5
+          docker ps | grep odoo19-web-1 || (echo "Container failed!" && exit 1)
