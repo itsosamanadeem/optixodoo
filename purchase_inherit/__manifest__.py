@@ -6,7 +6,7 @@
     'version': '1.2',
     'category': 'Customizations',
     'sequence': -100,
-    'summary': 'Purchase orders, tenders and agreements',
+    'summary': 'Purchase orders,Approval Chain',
     'website': 'https://www.odoo.com/app/purchase',
     'depends': ['purchase',
                 'account_budget',
