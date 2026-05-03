@@ -25,12 +25,35 @@ class ApprovalProductLine(models.Model):
         string='Departments',
         domain=_domain_department_id_for_user,
     )
-    product_gl_description = fields.Text(string="GL", readonly=True, store=True)
+    product_gl_description = fields.Text(string="GL", compute="_compute_product_gl", readonly=True, store=True)
+    currency_id = fields.Many2one(
+        'res.currency',
+        string="Currency",
+        related='company_id.currency_id',
+        store=True,
+        readonly=True,
+    )
+    price_unit = fields.Monetary(
+        compute="_compute_price_unit",
+        string="Price",
+        store=True,
+        readonly=True,
+        currency_field='currency_id'
+    )
     
-    @api.onchange('product_id')
-    def product_gl_onchange(self):
+    @api.depends('product_id','product_id.standard_price')
+    def _compute_price_unit(self):
         for rec in self:
-            rec.product_gl_description = rec.product_id.property_account_expense_id.code + ' ' + rec.product_id.property_account_expense_id.name if rec.product_id and rec.product_id.property_account_expense_id else ''
+            rec.price_unit = rec.product_id.standard_price
+            
+    @api.depends('product_id', 'product_id.analytic_gl_id')
+    def _compute_product_gl(self):
+        for rec in self:
+            gl = rec.product_id.analytic_gl_id
+            if gl:
+                rec.product_gl_description = gl.name
+            else:
+                rec.product_gl_description = ''
             
     department_analytic_account_id = fields.Many2one(
         "account.analytic.account",
@@ -82,6 +105,13 @@ class ApprovalProductLine(models.Model):
 class ApprovalForm(models.Model):
     _inherit = 'approval.request'
 
+    amount = fields.Float( string="Amount",compute="_compute_amount",readonly=True, store=True)
+    
+    @api.depends('product_line_ids')
+    def _compute_amount(self):
+        for rec in self:
+            rec.amount = sum(rec.product_line_ids.mapped('price_unit'))
+    
     def action_confirm(self):
         skip_city_check = self.env.context.get('skip_city_check')
         for request in self:
