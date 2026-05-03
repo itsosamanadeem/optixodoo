@@ -106,12 +106,11 @@ class ApprovalForm(models.Model):
     _inherit = 'approval.request'
 
     amount = fields.Float( string="Amount",compute="_compute_amount",readonly=True, store=True)
-    
     @api.depends('product_line_ids')
     def _compute_amount(self):
         for rec in self:
             rec.amount = sum(rec.product_line_ids.mapped('price_unit'))
-    
+            
     def action_confirm(self):
         skip_city_check = self.env.context.get('skip_city_check')
         for request in self:
