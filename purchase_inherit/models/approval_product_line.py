@@ -123,13 +123,6 @@ class ApprovalForm(models.Model):
     def _compute_amount(self):
         for rec in self:
             rec.amount = sum(rec.product_line_ids.mapped('price_unit'))
-
-    @staticmethod
-    def _get_approval_line_qty(line):
-        for field_name in ("quantity", "product_qty", "product_uom_qty"):
-            if field_name in line._fields:
-                return line[field_name] or 0.0
-        return 0.0
             
     def action_confirm(self):
         skip_city_check = self.env.context.get('skip_city_check')
@@ -186,73 +179,69 @@ class ApprovalForm(models.Model):
         return super().action_confirm()
 
     def action_create_purchase_orders(self):
-        self.ensure_one()
         sudo_self = self.sudo()
-        if self.purchase_order_count:
-            return
-        sudo_self._create_purchase_orders()
-        sudo_self._log_po_creation_to_chatter()
+        res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
         sudo_self._create_activity()
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
             for rec in self:
                 rec._mark_scm_activities_done()
-
-        # Users without Purchase access should not open PO/RFQ screens.
-        if not (
-            self.env.user.has_group('purchase.group_purchase_user')
-            or self.env.user.has_group('purchase.group_purchase_manager')
-        ):
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': _('Success'),
-                    'message': _('RFQ has been created successfully.'),
-                    'type': 'success',
-                    'sticky': False,
-                    'next': {'type': 'ir.actions.act_window_close'},
-                },
-            }
-
-        po_ids = sudo_self.purchase_order_ids.ids if hasattr(sudo_self, "purchase_order_ids") else []
-        return {
-            'type': 'ir.actions.act_window',
-            'name': _('Requests for Quotation'),
-            'res_model': 'purchase.order',
-            'view_mode': 'list,form',
-            'domain': [('id', 'in', po_ids)],
-        }
+                
+        return res
     
     def _create_purchase_orders(self):
-        requester_user_id = self.env.uid
         sudo_self = self.sudo()
-        super(ApprovalForm, sudo_self)._create_purchase_orders()
+        sudo_self.product_line_ids._check_products_vendor()
 
-        if hasattr(sudo_self, "purchase_order_ids"):
-            sudo_self.purchase_order_ids.sudo().write({'user_id': requester_user_id})
+        po_model = self.env['purchase.order'].sudo()
+        po_line_model = self.env['purchase.order.line'].sudo()
 
         for request in sudo_self:
-            grouped = defaultdict(list)
-            for req_line in request.product_line_ids.filtered("purchase_order_line_id"):
-                grouped[req_line.purchase_order_line_id.id].append(req_line)
+            # RFQ grouping rule requested:
+            # 1) same product + same department => merge in one PO line (sum qty)
+            # 2) different products (even same department) => different POs
+            # 3) same product + different departments => same PO, multiple lines
+            lines_by_po_key = defaultdict(list)
+            for line in request.product_line_ids:
+                seller = line.seller_id or line.product_id.with_company(line.company_id)._select_seller(
+                    quantity=line.po_uom_qty,
+                    uom_id=line.product_id.uom_id,
+                )
+                if not seller:
+                    continue
+                vendor = seller.partner_id
+                po_key = (vendor.id, line.company_id.id, line.product_id.id)
+                lines_by_po_key[po_key].append((line, seller, vendor))
 
-            for req_lines in grouped.values():
-                base_po_line = req_lines[0].purchase_order_line_id.sudo()
-                first_req_line = req_lines[0]
-                base_po_line.write({
-                    'department_id': first_req_line.department_id.id,
-                    'analytic_distribution': first_req_line.analytic_distribution,
-                    'product_qty': self._get_approval_line_qty(first_req_line),
-                })
+            for _, packed_lines in lines_by_po_key.items():
+                first_line, _, first_vendor = packed_lines[0]
+                po_vals = first_line._get_purchase_order_values(first_vendor)
+                purchase_order = po_model.create(po_vals)
 
-                for req_line in req_lines[1:]:
-                    new_po_line = base_po_line.copy(default={
-                        'product_qty': self._get_approval_line_qty(req_line),
-                        'department_id': req_line.department_id.id,
-                        'analytic_distribution': req_line.analytic_distribution,
+                lines_by_department = defaultdict(list)
+                for line, seller, _vendor in packed_lines:
+                    lines_by_department[line.department_id.id].append((line, seller))
+
+                for department_id, dept_lines in lines_by_department.items():
+                    base_line, base_seller = dept_lines[0]
+                    total_po_uom_qty = sum((l.po_uom_qty or 0.0) for l, _s in dept_lines)
+
+                    po_line_vals = po_line_model._prepare_purchase_order_line(
+                        base_line.product_id,
+                        total_po_uom_qty,
+                        base_seller.product_uom_id,
+                        base_line.company_id,
+                        first_vendor,
+                        purchase_order,
+                    )
+                    po_line = po_line_model.create(po_line_vals)
+                    po_line.write({
+                        'department_id': department_id,
+                        'analytic_distribution': base_line.analytic_distribution,
                     })
-                    req_line.sudo().write({'purchase_order_line_id': new_po_line.id})
-    
+                    for line, _seller in dept_lines:
+                        line.purchase_order_line_id = po_line.id
+
+        return True
     def _create_activity(self):        
         scm_group = self.env.ref('purchase_inherit.group_scm_user')
         scm_users = scm_group.user_ids
