@@ -1,15 +1,12 @@
 name: Deploy to Production
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      - closed
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging'
     runs-on: self-hosted
 
     steps:
