@@ -1,0 +1,12 @@
+<odoo>
+    <record id="repair_order_form_view_inherit_warrenty" model="ir.ui.view">
+        <field name="name">repair.order.form.view.inherit.warrenty</field>
+        <field name="model">repair.order</field>
+        <field name="inherit_id" ref="repair.view_repair_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="warrenty_status" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

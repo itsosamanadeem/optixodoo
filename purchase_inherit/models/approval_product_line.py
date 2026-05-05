@@ -8,6 +8,11 @@ class ApprovalProductLine(models.Model):
     _name="approval.product.line"
     _inherit = ['approval.product.line', 'analytic.mixin']
 
+    @staticmethod
+    def _distribution_key(*analytic_ids):
+        valid_ids = [str(analytic_id) for analytic_id in analytic_ids if analytic_id]
+        return ",".join(valid_ids) if valid_ids else False
+
     @api.model
     def _domain_department_id_for_user(self):
         """
@@ -85,8 +90,12 @@ class ApprovalProductLine(models.Model):
         # Keep the base analytic behavior, then auto-fill from department cost center.
         super()._compute_analytic_distribution()
         for rec in self:
-            if (rec.department_analytic_account_id or rec.department_analytic_city_id) and not rec.analytic_distribution and rec.product_id.analytic_gl_id:
-                rec.analytic_distribution = {f"{rec.department_analytic_account_id.id},{rec.department_analytic_city_id.id},{rec.product_id.analytic_gl_id.id}": 100}
+            aa_id = rec.department_analytic_account_id.id
+            ac_id = rec.department_analytic_city_id.id
+            gl_id = rec.product_id.analytic_gl_id.id
+            key = self._distribution_key(aa_id, ac_id, gl_id)
+            if key and not rec.analytic_distribution:
+                rec.analytic_distribution = {key: 100}
 
     @api.onchange('department_id','product_id')
     def _onchange_department_id_set_analytic_distribution(self):
@@ -96,8 +105,9 @@ class ApprovalProductLine(models.Model):
             aa = rec.department_id.analytic_account_id
             ac = rec.department_id.analytic_city_id
             gl_id = rec.product_id.analytic_gl_id
-            if aa or ac:
-                rec.analytic_distribution = {f"{aa.id},{ac.id},{gl_id.id}": 100}
+            key = self._distribution_key(aa.id, ac.id, gl_id.id)
+            if key:
+                rec.analytic_distribution = {key: 100}
 
     def _check_products_vendor(self):
         pass

@@ -11,6 +11,9 @@
             <xpath expr="/form/sheet/notebook/page[@name='products']/field[@name='order_line']/list//field[@name='price_subtotal']" position="before">
                 <field optional="show" name="amount_to_change"/>
             </xpath>
+            <xpath expr="/form/sheet/notebook/page[@name='products']/field[@name='order_line']/list//field[@name='price_unit']" position="attributes">
+                <attribute name="readonly">not is_service_product</attribute>
+            </xpath>
         </field>
     </record>
 </odoo>
