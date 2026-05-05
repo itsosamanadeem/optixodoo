@@ -176,20 +176,41 @@ class ApprovalForm(models.Model):
         return super().action_confirm()
 
     def action_create_purchase_orders(self):
-        res = super(ApprovalForm, self.sudo()).action_create_purchase_orders()
-        self._create_activity()
+        sudo_self = self.sudo()
+        res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
+        sudo_self._create_activity()
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
             for rec in self:
                 rec._mark_scm_activities_done()
+
+        # Users without Purchase access should not open PO/RFQ screens.
+        if not (
+            self.env.user.has_group('purchase.group_purchase_user')
+            or self.env.user.has_group('purchase.group_purchase_manager')
+        ):
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('Success'),
+                    'message': _('RFQ has been created successfully.'),
+                    'type': 'success',
+                    'sticky': False,
+                    'next': {'type': 'ir.actions.act_window_close'},
+                },
+            }
         return res
     
     def _create_purchase_orders(self):
-        res = super(ApprovalForm, self.sudo())._create_purchase_orders()
-        for line in self.product_line_ids:
+        sudo_self = self.sudo()
+        res = super(ApprovalForm, sudo_self)._create_purchase_orders()
+        for line in sudo_self.product_line_ids:
             if line.purchase_order_line_id:
                 po_line = line.purchase_order_line_id
-                po_line.department_id = line.department_id
-                po_line.analytic_distribution = line.analytic_distribution
+                po_line.sudo().write({
+                    'department_id': line.department_id.id,
+                    'analytic_distribution': line.analytic_distribution,
+                })
         return res
     
     def _create_activity(self):        
