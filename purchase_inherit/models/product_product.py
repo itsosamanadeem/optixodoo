@@ -10,3 +10,6 @@ class ProductTemplate(models.Model):
         help="Analytic account used as the GL account.",
         domain=[("plan_id.name", "ilike", "GL")],
     )
+    
+    warrenty_time = fields.Integer(string="Warrent")
+    

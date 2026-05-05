@@ -19,6 +19,7 @@
                 'account',
                 'analytic',
                 'product',
+                'repair',
     ],
     "data": [
         #security
@@ -27,12 +28,14 @@
         "security/ir.model.access.csv",
         
         #views
+        "views/warrenty.xml",
         "views/product_product.xml",
         "views/budget_analytic.xml",
         "views/hr_department.xml",
         "views/approval_product_line.xml",
         "views/purchase_order_line_views.xml",
         "views/purchase.xml",
+        "views/repair_order.xml",
         
         #wizards
         "wizard/budget_wizard.xml",
