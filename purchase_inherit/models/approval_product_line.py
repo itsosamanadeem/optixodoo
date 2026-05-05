@@ -178,7 +178,13 @@ class ApprovalForm(models.Model):
 
     def action_create_purchase_orders(self):
         sudo_self = self.sudo()
-        res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
+        """ Create and/or modifier Purchase Orders. """
+        self.ensure_one()
+        if self.purchase_order_count:
+            return
+        sudo_self._create_purchase_orders()
+        sudo_self._log_po_creation_to_chatter()
+        # res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
         sudo_self._create_activity()
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
             for rec in self:
@@ -204,15 +210,35 @@ class ApprovalForm(models.Model):
     
     def _create_purchase_orders(self):
         sudo_self = self.sudo()
-        res = super(ApprovalForm, sudo_self)._create_purchase_orders()
+        sudo_self.product_line_ids._check_products_vendor()
+        # res = super(ApprovalForm, sudo_self)._create_purchase_orders()
         for line in sudo_self.product_line_ids:
+            seller = line.seller_id or line.product_id.with_company(line.company_id)._select_seller(
+                quantity=line.po_uom_qty,
+                uom_id=line.product_id.uom_id,
+            )
+            vendor = seller.partner_id
+            # No RFQ found: create a new one.
+            po_vals = line._get_purchase_order_values(vendor)
+            new_purchase_order = self.env['purchase.order'].create(po_vals)
+            seller_uom_qty = line.product_uom_id._compute_quantity(line.quantity, seller.product_uom_id)
+            po_line_vals = self.env['purchase.order.line']._prepare_purchase_order_line(
+                line.product_id,
+                seller_uom_qty,
+                seller.product_uom_id,
+                line.company_id,
+                vendor,
+                new_purchase_order,
+            )
+            new_po_line = self.env['purchase.order.line'].create(po_line_vals)
+            line.purchase_order_line_id = new_po_line.id
+            new_purchase_order.order_line = [(4, new_po_line.id)]
             if line.purchase_order_line_id:
                 po_line = line.purchase_order_line_id
                 po_line.sudo().write({
                     'department_id': line.department_id.id,
                     'analytic_distribution': line.analytic_distribution,
                 })
-        return res
     
     def _create_activity(self):        
         scm_group = self.env.ref('purchase_inherit.group_scm_user')
