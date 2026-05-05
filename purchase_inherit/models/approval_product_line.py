@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from odoo import models, fields, _, api #type:ignore
 from odoo.exceptions import UserError #type:ignore
 import json
@@ -121,6 +123,13 @@ class ApprovalForm(models.Model):
     def _compute_amount(self):
         for rec in self:
             rec.amount = sum(rec.product_line_ids.mapped('price_unit'))
+
+    @staticmethod
+    def _get_approval_line_qty(line):
+        for field_name in ("quantity", "product_qty", "product_uom_qty"):
+            if field_name in line._fields:
+                return line[field_name] or 0.0
+        return 0.0
             
     def action_confirm(self):
         skip_city_check = self.env.context.get('skip_city_check')
@@ -177,14 +186,12 @@ class ApprovalForm(models.Model):
         return super().action_confirm()
 
     def action_create_purchase_orders(self):
-        sudo_self = self.sudo()
-        """ Create and/or modifier Purchase Orders. """
         self.ensure_one()
+        sudo_self = self.sudo()
         if self.purchase_order_count:
             return
         sudo_self._create_purchase_orders()
         sudo_self._log_po_creation_to_chatter()
-        # res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
         sudo_self._create_activity()
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
             for rec in self:
@@ -206,39 +213,45 @@ class ApprovalForm(models.Model):
                     'next': {'type': 'ir.actions.act_window_close'},
                 },
             }
-        return res
+
+        po_ids = sudo_self.purchase_order_ids.ids if hasattr(sudo_self, "purchase_order_ids") else []
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Requests for Quotation'),
+            'res_model': 'purchase.order',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', po_ids)],
+        }
     
     def _create_purchase_orders(self):
+        requester_user_id = self.env.uid
         sudo_self = self.sudo()
-        sudo_self.product_line_ids._check_products_vendor()
-        # res = super(ApprovalForm, sudo_self)._create_purchase_orders()
-        for line in sudo_self.product_line_ids:
-            seller = line.seller_id or line.product_id.with_company(line.company_id)._select_seller(
-                quantity=line.po_uom_qty,
-                uom_id=line.product_id.uom_id,
-            )
-            vendor = seller.partner_id
-            # No RFQ found: create a new one.
-            po_vals = line._get_purchase_order_values(vendor)
-            new_purchase_order = self.env['purchase.order'].create(po_vals)
-            seller_uom_qty = line.product_uom_id._compute_quantity(line.quantity, seller.product_uom_id)
-            po_line_vals = self.env['purchase.order.line']._prepare_purchase_order_line(
-                line.product_id,
-                seller_uom_qty,
-                seller.product_uom_id,
-                line.company_id,
-                vendor,
-                new_purchase_order,
-            )
-            new_po_line = self.env['purchase.order.line'].create(po_line_vals)
-            line.purchase_order_line_id = new_po_line.id
-            new_purchase_order.order_line = [(4, new_po_line.id)]
-            if line.purchase_order_line_id:
-                po_line = line.purchase_order_line_id
-                po_line.sudo().write({
-                    'department_id': line.department_id.id,
-                    'analytic_distribution': line.analytic_distribution,
+        super(ApprovalForm, sudo_self)._create_purchase_orders()
+
+        if hasattr(sudo_self, "purchase_order_ids"):
+            sudo_self.purchase_order_ids.sudo().write({'user_id': requester_user_id})
+
+        for request in sudo_self:
+            grouped = defaultdict(list)
+            for req_line in request.product_line_ids.filtered("purchase_order_line_id"):
+                grouped[req_line.purchase_order_line_id.id].append(req_line)
+
+            for req_lines in grouped.values():
+                base_po_line = req_lines[0].purchase_order_line_id.sudo()
+                first_req_line = req_lines[0]
+                base_po_line.write({
+                    'department_id': first_req_line.department_id.id,
+                    'analytic_distribution': first_req_line.analytic_distribution,
+                    'product_qty': self._get_approval_line_qty(first_req_line),
                 })
+
+                for req_line in req_lines[1:]:
+                    new_po_line = base_po_line.copy(default={
+                        'product_qty': self._get_approval_line_qty(req_line),
+                        'department_id': req_line.department_id.id,
+                        'analytic_distribution': req_line.analytic_distribution,
+                    })
+                    req_line.sudo().write({'purchase_order_line_id': new_po_line.id})
     
     def _create_activity(self):        
         scm_group = self.env.ref('purchase_inherit.group_scm_user')
