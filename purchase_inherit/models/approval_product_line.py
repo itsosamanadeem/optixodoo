@@ -216,7 +216,6 @@ class ApprovalForm(models.Model):
                 first_line, _, first_vendor = packed_lines[0]
                 po_vals = first_line._get_purchase_order_values(first_vendor)
                 purchase_order = po_model.create(po_vals)
-
                 lines_by_department = defaultdict(list)
                 for line, seller, _vendor in packed_lines:
                     lines_by_department[line.department_id.id].append((line, seller))
