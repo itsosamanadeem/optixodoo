@@ -122,7 +122,7 @@ class ApprovalForm(models.Model):
     @api.depends('product_line_ids')
     def _compute_amount(self):
         for rec in self:
-            rec.amount = sum(rec.product_line_ids.mapped('price_unit'))
+            rec.amount = sum(rec.product_line_ids.filtered(lambda l: l.price_unit).mapped(lambda l: l.price_unit * (l.po_uom_qty or 1)))
             
     def action_confirm(self):
         skip_city_check = self.env.context.get('skip_city_check')
