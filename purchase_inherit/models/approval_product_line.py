@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from odoo import models, fields, _, api #type:ignore
 from odoo.exceptions import UserError #type:ignore
 import json
@@ -116,10 +118,11 @@ class ApprovalForm(models.Model):
     _inherit = 'approval.request'
 
     amount = fields.Float( string="Amount",compute="_compute_amount",readonly=True, store=True)
+    
     @api.depends('product_line_ids')
     def _compute_amount(self):
         for rec in self:
-            rec.amount = sum(rec.product_line_ids.mapped('price_unit'))
+            rec.amount = sum(rec.product_line_ids.filtered(lambda l: l.price_unit).mapped(lambda l: l.price_unit * (l.po_uom_qty or 1)))
             
     def action_confirm(self):
         skip_city_check = self.env.context.get('skip_city_check')
@@ -176,22 +179,68 @@ class ApprovalForm(models.Model):
         return super().action_confirm()
 
     def action_create_purchase_orders(self):
-        res = super(ApprovalForm, self.sudo()).action_create_purchase_orders()
-        self._create_activity()
+        sudo_self = self.sudo()
+        res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
+        sudo_self._create_activity()
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
             for rec in self:
                 rec._mark_scm_activities_done()
+                
         return res
     
     def _create_purchase_orders(self):
-        res = super(ApprovalForm, self.sudo())._create_purchase_orders()
-        for line in self.product_line_ids:
-            if line.purchase_order_line_id:
-                po_line = line.purchase_order_line_id
-                po_line.department_id = line.department_id
-                po_line.analytic_distribution = line.analytic_distribution
-        return res
-    
+        sudo_self = self.sudo()
+        sudo_self.product_line_ids._check_products_vendor()
+
+        po_model = self.env['purchase.order'].sudo()
+        po_line_model = self.env['purchase.order.line'].sudo()
+
+        for request in sudo_self:
+            # RFQ grouping rule requested:
+            # 1) same product + same department => merge in one PO line (sum qty)
+            # 2) different products (even same department) => different POs
+            # 3) same product + different departments => same PO, multiple lines
+            lines_by_po_key = defaultdict(list)
+            for line in request.product_line_ids:
+                seller = line.seller_id or line.product_id.with_company(line.company_id)._select_seller(
+                    quantity=line.po_uom_qty,
+                    uom_id=line.product_id.uom_id,
+                )
+                if not seller:
+                    continue
+                vendor = seller.partner_id
+                po_key = (vendor.id, line.company_id.id, line.product_id.id)
+                lines_by_po_key[po_key].append((line, seller, vendor))
+
+            for _, packed_lines in lines_by_po_key.items():
+                first_line, _, first_vendor = packed_lines[0]
+                po_vals = first_line._get_purchase_order_values(first_vendor)
+                purchase_order = po_model.create(po_vals)
+                lines_by_department = defaultdict(list)
+                for line, seller, _vendor in packed_lines:
+                    lines_by_department[line.department_id.id].append((line, seller))
+
+                for department_id, dept_lines in lines_by_department.items():
+                    base_line, base_seller = dept_lines[0]
+                    total_po_uom_qty = sum((l.po_uom_qty or 0.0) for l, _s in dept_lines)
+
+                    po_line_vals = po_line_model._prepare_purchase_order_line(
+                        base_line.product_id,
+                        total_po_uom_qty,
+                        base_seller.product_uom_id,
+                        base_line.company_id,
+                        first_vendor,
+                        purchase_order,
+                    )
+                    po_line = po_line_model.create(po_line_vals)
+                    po_line.write({
+                        'department_id': department_id,
+                        'analytic_distribution': base_line.analytic_distribution,
+                    })
+                    for line, _seller in dept_lines:
+                        line.purchase_order_line_id = po_line.id
+
+        return True
     def _create_activity(self):        
         scm_group = self.env.ref('purchase_inherit.group_scm_user')
         scm_users = scm_group.user_ids
