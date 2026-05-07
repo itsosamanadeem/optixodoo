@@ -7,8 +7,17 @@ access_city_warning_wizard_user,City Warning Wizard User,model_city_warning_wiza
 access_city_warning_wizard_manager,City Warning Wizard Manager,model_city_warning_wizard,purchase_inherit.group_scm,1,1,1,1
 access_city_warning_wizard_ceo,City Warning Wizard CEO,model_city_warning_wizard,purchase_inherit.group_ceo,1,1,1,1
 
+access_purchase_order_user,Purchase Order For User Manager,model_purchase_order,purchase.group_purchase_user,1,0,0,0
+access_purchase_order_line_user,Purchase Order Line For User Manager,model_purchase_order_line,purchase.group_purchase_user,1,0,0,0
+
 access_purchase_order,Purchase Order For Dept Manager,model_purchase_order,purchase.group_purchase_manager,1,0,0,0
 access_purchase_order_line,Purchase Order Line For Dept Manager,model_purchase_order_line,purchase.group_purchase_manager,1,0,0,0
 
-access_purchase_order_user,Purchase Order For User Manager,model_purchase_order,purchase.group_purchase_user,1,0,0,0
-access_purchase_order_line_user,Purchase Order Line For User Manager,model_purchase_order_line,purchase.group_purchase_user,1,0,0,0
+access_purchase_order_scm_user,Purchase Order For SCM User,model_purchase_order,purchase_inherit.group_scm_user,1,1,0,0
+access_purchase_order_line_scm_user,Purchase Order Line For SCM User,model_purchase_order_line,purchase_inherit.group_scm_user,1,1,0,0
+
+access_purchase_order_scm_manager,Purchase Order For SCM Manager,model_purchase_order,purchase_inherit.group_scm,1,1,0,0
+access_purchase_order_line_scm_manager,Purchase Order Line For SCM Manager,model_purchase_order_line,purchase_inherit.group_scm,1,1,0,0
+
+access_purchase_order_scm_ceo,Purchase Order For SCM CEO,model_purchase_order,purchase_inherit.group_ceo,1,1,1,1
+access_purchase_order_line_scm_ceo,Purchase Order Line For SCM CEO,model_purchase_order_line,purchase_inherit.group_ceo,1,1,1,1
