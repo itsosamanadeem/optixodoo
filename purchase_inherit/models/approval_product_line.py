@@ -47,11 +47,19 @@ class ApprovalProductLine(models.Model):
         readonly=True,
         currency_field='currency_id'
     )
-    
+    is_service_product = fields.Boolean(
+        string="Is Service Product",
+        compute="_compute_is_service_product",
+    )
     @api.depends('product_id','product_id.standard_price')
     def _compute_price_unit(self):
         for rec in self:
             rec.price_unit = rec.product_id.standard_price
+
+    @api.depends("product_id", "product_id.type")
+    def _compute_is_service_product(self):
+        for rec in self:
+            rec.is_service_product = rec.product_id.type == "service"
             
     @api.depends('product_id', 'product_id.analytic_gl_id')
     def _compute_product_gl(self):
@@ -113,11 +121,15 @@ class ApprovalProductLine(models.Model):
 
     def _check_products_vendor(self):
         pass
-
+            
 class ApprovalForm(models.Model):
     _inherit = 'approval.request'
 
     amount = fields.Float( string="Amount",compute="_compute_amount",readonly=True, store=True)
+
+    @staticmethod
+    def _line_qty(line):
+        return line.po_uom_qty or line.quantity or 0.0
     
     @api.depends('product_line_ids')
     def _compute_amount(self):
@@ -187,6 +199,44 @@ class ApprovalForm(models.Model):
                 rec._mark_scm_activities_done()
                 
         return res
+
+    def action_draft(self):
+        for request in self:
+            owner_user = False
+            if 'request_owner_id' in request._fields:
+                owner_user = request.request_owner_id
+            elif 'owner_id' in request._fields:
+                owner_user = request.owner_id
+            if not owner_user:
+                owner_user = request.create_uid
+
+            if (
+                owner_user
+                and owner_user != self.env.user
+                and not self.env.user.has_group('approvals.group_approval_manager')
+            ):
+                raise UserError(_("Only the requester or an Approval Manager can reset to draft this request."))
+
+        return super(ApprovalForm, self.sudo()).action_draft()
+    
+    def action_cancel(self):
+        for request in self:
+            owner_user = False
+            if 'request_owner_id' in request._fields:
+                owner_user = request.request_owner_id
+            elif 'owner_id' in request._fields:
+                owner_user = request.owner_id
+            if not owner_user:
+                owner_user = request.create_uid
+
+            if (
+                owner_user
+                and owner_user != self.env.user
+                and not self.env.user.has_group('approvals.group_approval_manager')
+            ):
+                raise UserError(_("Only the requester or an Approval Manager can cancel this request."))
+
+        return super(ApprovalForm, self.sudo()).action_cancel()
     
     def _create_purchase_orders(self):
         sudo_self = self.sudo()
@@ -222,7 +272,9 @@ class ApprovalForm(models.Model):
 
                 for department_id, dept_lines in lines_by_department.items():
                     base_line, base_seller = dept_lines[0]
-                    total_po_uom_qty = sum((l.po_uom_qty or 0.0) for l, _s in dept_lines)
+                    total_po_uom_qty = sum((self._line_qty(l) or 0.0) for l, _s in dept_lines)
+                    total_amount = sum(((l.price_unit or 0.0) * (self._line_qty(l) or 0.0)) for l, _s in dept_lines)
+                    unit_price = (total_amount / total_po_uom_qty) if total_po_uom_qty else (base_line.price_unit or 0.0)
 
                     po_line_vals = po_line_model._prepare_purchase_order_line(
                         base_line.product_id,
@@ -236,6 +288,7 @@ class ApprovalForm(models.Model):
                     po_line.write({
                         'department_id': department_id,
                         'analytic_distribution': base_line.analytic_distribution,
+                        'price_unit': unit_price,
                     })
                     for line, _seller in dept_lines:
                         line.purchase_order_line_id = po_line.id

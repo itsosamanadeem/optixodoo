@@ -15,17 +15,13 @@ class PurchaseOrderLine(models.Model):
         string="Departments",
         required=False,
     )
-    is_service_product = fields.Boolean(
-        string="Is Service Product",
-        compute="_compute_is_service_product",
-    )
     
     # def write(self, vals):
     #     if not self.order_id.is_sent_back:
     #         raise UserError("Cannot modify sent-back orders.")
     #     return super().write(vals)
 
-    @api.depends('department_id')
+    @api.depends('department_id','department_id.analytic_account_id','department_id.analytic_city_id','product_id','product_id.analytic_gl_id')
     def _compute_analytic_distribution(self):
         # Keep the base analytic behavior, then auto-fill from department cost center.
         super()._compute_analytic_distribution()
@@ -37,7 +33,7 @@ class PurchaseOrderLine(models.Model):
             if key and not rec.analytic_distribution:
                 rec.analytic_distribution = {key: 100}
 
-    @api.onchange('department_id')
+    @api.onchange('department_id','department_id.analytic_account_id','department_id.analytic_city_id','product_id','product_id.analytic_gl_id')
     def _onchange_department_ids_set_analytic_distribution(self):
         """If exactly one department is selected, auto-fill from its cost center."""
         if 'analytic_distribution' not in self._fields:
@@ -53,12 +49,7 @@ class PurchaseOrderLine(models.Model):
                 rec.analytic_distribution = {key: 100}
 
     amount_to_change = fields.Float(string="Amount to Change", store=True)
-
-    @api.depends("product_id", "product_id.type")
-    def _compute_is_service_product(self):
-        for rec in self:
-            rec.is_service_product = rec.product_id.type == "service"
-        
+            
     @api.onchange('product_id', 'product_qty', 'amount_to_change')
     def _change_price_unit(self):
         for rec in self:

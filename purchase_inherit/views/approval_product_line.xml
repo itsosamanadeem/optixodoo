@@ -30,11 +30,18 @@
                     <field optional="show" name="analytic_distribution" widget="analytic_distribution_po"/>
                     <field name="description"/>
                     <field name="product_gl_description" optional="show"/>
-                    <field name="price_unit" optional="show"/>
+                    <field name="price_unit" optional="show" readonly="not is_service_product"/>
                     <field name="quantity" column_invisible="parent.has_quantity == 'no'" required="parent.has_quantity == 'required' and parent.request_status != 'new'"/>
                     <field name="product_uom_id" groups="uom.group_uom" widget="many2one_uom" options="{'no_create': True, 'no_open': True}"/>
                     <field name="seller_id" column_invisible="True" required="False"/>
                 </list>
+            </xpath>
+            <xpath expr="/form//button[@name='action_create_purchase_orders']" position="attributes">
+                <attribute name="groups"/>
+                <attribute name="string">Purchase Request</attribute>
+            </xpath>
+            <xpath expr="/form//button[@name='action_draft']" position="attributes">
+                <attribute name="invisible">request_status != "cancel"</attribute>
             </xpath>
         </field>
     </record>
