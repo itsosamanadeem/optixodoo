@@ -10,6 +10,7 @@
             </xpath>
             <xpath expr="/form[@name='Product Template']/sheet[@name='product_form']/notebook/page[@name='general_information']/group/group[@name='group_general']/div[2]" position="after">
                 <field name="warrenty_time" invisible="tracking != 'serial'"/>
+                <field name="asset_tag_no"/>
             </xpath>
         </field>
     </record>

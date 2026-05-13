@@ -1,0 +1,12 @@
+<odoo>
+    <menuitem
+        id="menu_ml_approval_groups"
+        name="Approval Groups"
+        parent="purchase.menu_purchase_config"
+        action="ml_purchase_approval.action_ml_approval_group"
+        groups="purchase_inherit.group_ceo"
+        sequence="100"/>
+    <record id="approvals.approvals_menu_root" model="ir.ui.menu">
+        <field name="name">Purchase Request</field>
+    </record>
+</odoo>

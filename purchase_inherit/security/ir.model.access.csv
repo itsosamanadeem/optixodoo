@@ -21,3 +21,9 @@ access_purchase_order_line_scm_manager,Purchase Order Line For SCM Manager,model
 
 access_purchase_order_scm_ceo,Purchase Order For SCM CEO,model_purchase_order,purchase_inherit.group_ceo,1,1,1,1
 access_purchase_order_line_scm_ceo,Purchase Order Line For SCM CEO,model_purchase_order_line,purchase_inherit.group_ceo,1,1,1,1
+
+access_ml_approval_group,Approval Group,ml_purchase_approval.model_ml_approval_group,purchase_inherit.group_ceo,1,1,1,1
+access_ml_approval_level,Approval Level,ml_purchase_approval.model_ml_approval_level,purchase_inherit.group_ceo,1,1,1,1
+
+access_ml_approval_group_user,Approval Group,ml_purchase_approval.model_ml_approval_group,purchase.group_purchase_user,1,0,0,0
+access_ml_approval_level_user,Approval Level,ml_purchase_approval.model_ml_approval_level,purchase.group_purchase_user,1,0,0,0

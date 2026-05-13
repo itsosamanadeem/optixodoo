@@ -7,3 +7,4 @@ from . import product_product
 from . import warrenty
 from . import mail_activities
 from . import repair_order
+from . import stock_picking
