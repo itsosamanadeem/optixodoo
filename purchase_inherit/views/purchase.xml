@@ -5,7 +5,7 @@
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="/form/header/field[@name='state']" position="after">
-                <button name="action_approve" string="Manager Approval" type="object" groups="purchase.group_purchase_manager,!purchase.group_purchase_user,!purchase_inherit.group_scm_user,!purchase_inherit.group_scm,!purchase_inherit.group_ceo"/>
+                <button name="action_approve" string="Manager Approval" type="object" groups="purchase.group_purchase_manager,purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user"/>
             </xpath>
             <xpath expr="/form//field[@name='date_order']" position="after">
                 <field name="department_manager_ids" widget="many2many_tags"/>
@@ -18,11 +18,24 @@
             </xpath>
             <xpath expr="/form//widget[@name='purchase_file_uploader']" position="attributes">
                 <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
+                <attribute name="invisible">not can_upload_bill</attribute>
             </xpath>
-            <xpath expr="/form/header/button[@name='action_rfq_send'][3]" position="attributes">
+            <xpath expr="/form/header/button[@name='action_rfq_send']" position="attributes">
+                <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
+            </xpath>
+            <xpath expr="/form/header/button[@name='button_confirm']" position="attributes">
+                <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
+            </xpath>
+            <xpath expr="/form/header/button[@name='button_cancel']" position="attributes">
                 <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
             </xpath>
             <xpath expr="/form//button[@name='button_unlock']" position="attributes">
+                <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
+            </xpath>
+            <xpath expr="/form//button[@id='draft_confirm']" position="attributes">
+                <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
+            </xpath>
+            <xpath expr="/form/header/button[@name='action_rfq_send'][3]" position="attributes">
                 <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
             </xpath>
             <!-- <xpath expr="/form//field[@name='picking_type_id']" position="after">

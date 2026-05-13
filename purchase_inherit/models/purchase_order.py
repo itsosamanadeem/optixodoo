@@ -32,6 +32,18 @@ class PurchaseOrder(models.Model):
         copy=False,
         readonly=True
     )
+    can_upload_bill = fields.Boolean(
+        string="Can Upload Bill",
+        compute="_compute_can_upload_bill",
+    )
+
+    @api.depends('order_line.qty_received')
+    def _compute_can_upload_bill(self):
+        for order in self:
+            if order.product_id.type == 'service':
+                order.can_upload_bill = True
+            else:
+                order.can_upload_bill = any((line.qty_received or 0.0) > 0 for line in order.order_line)
 
     def _get_department_managers(self):
         self.ensure_one()
