@@ -22,8 +22,14 @@ access_purchase_order_line_scm_manager,Purchase Order Line For SCM Manager,model
 access_purchase_order_scm_ceo,Purchase Order For SCM CEO,model_purchase_order,purchase_inherit.group_ceo,1,1,1,1
 access_purchase_order_line_scm_ceo,Purchase Order Line For SCM CEO,model_purchase_order_line,purchase_inherit.group_ceo,1,1,1,1
 
-access_ml_approval_group,Approval Group,ml_purchase_approval.model_ml_approval_group,purchase_inherit.group_ceo,1,1,1,1
-access_ml_approval_level,Approval Level,ml_purchase_approval.model_ml_approval_level,purchase_inherit.group_ceo,1,1,1,1
+access_stock_serial_import_wizard_inventory_admin,Stock Serial Import Wizard Inventory Administrator,model_stock_serial_import_wizard,stock.group_stock_manager,1,1,1,1
+access_account_payment_register_tax_line_inventory_admin,Account Payment Register Tax Line Inventory Administrator,model_account_payment_register_tax_line,stock.group_stock_manager,1,1,1,1
 
-access_ml_approval_group_user,Approval Group,ml_purchase_approval.model_ml_approval_group,purchase.group_purchase_user,1,0,0,0
-access_ml_approval_level_user,Approval Level,ml_purchase_approval.model_ml_approval_level,purchase.group_purchase_user,1,0,0,0
+access_ml_approval_group_ceo,ml.approval.group,ml_purchase_approval.model_ml_approval_group,purchase_inherit.group_ceo,1,1,1,1
+access_ml_approval_level_ceo,ml.approval.level,ml_purchase_approval.model_ml_approval_level,purchase_inherit.group_ceo,1,1,1,1
+
+access_ml_approval_group_scm_user,ml.approval.group,ml_purchase_approval.model_ml_approval_group,purchase_inherit.group_scm_user,1,0,0,0
+access_ml_approval_group_scm_user,ml.approval.group,ml_purchase_approval.model_ml_approval_group,purchase_inherit.group_scm_user,1,0,0,0
+
+access_ml_approval_level_scm_manager,ml.approval.level,ml_purchase_approval.model_ml_approval_level,purchase_inherit.group_scm,1,0,0,0
+access_ml_approval_level_scm_manager,ml.approval.level,ml_purchase_approval.model_ml_approval_level,purchase_inherit.group_scm,1,0,0,0

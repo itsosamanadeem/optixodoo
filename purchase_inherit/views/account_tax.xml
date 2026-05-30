@@ -1,0 +1,15 @@
+<odoo>
+    <record id="account_tax_form_view" model="ir.ui.view">
+        <field name="name">account.tax.form.view.inherit</field>
+        <field name="model">account.tax</field>
+        <field name="inherit_id" ref="account.view_tax_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form//field[@name='active']" position="after">
+                <field name="is_income_tax"/>
+            </xpath>
+            <xpath expr="/form//field[@name='invoice_legal_notes']" position="after">
+                <field name="account_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

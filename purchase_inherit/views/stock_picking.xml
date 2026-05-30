@@ -9,6 +9,27 @@
                 <field name="product_default_code" readonly="1"/>
                 <field name="asset_tag_no" readonly="1"/>
             </xpath>
+            <xpath expr="/form/sheet/group/group/div/label[@for='partner_id']" position="attributes">
+                <attribute name="string">Customer</attribute>
+            </xpath>
+            <xpath expr="/form/sheet/group/group/field[@name='partner_id']" position="attributes">
+                <attribute name="domain">[('customer_rank', '&gt;', 0)] if picking_type_code == 'outgoing' else []</attribute>
+            </xpath>
+            <xpath expr="/form/sheet/group/group/field[@name='partner_id']" position="after">
+                <field name="customer_cnic_number" readonly="1"/>
+            </xpath>
+            <!-- <xpath expr="/form//page[@name='gate_pass_info']" position="attributes">
+                <attribute name="string">Issuance/Consume item Receipts</attribute>
+            </xpath> -->
+            <!-- <xpath expr="/form//field[@name='vehicle_no']" position="attributes">
+                <attribute name="string">Issuance/Consumption</attribute>
+            </xpath>
+            <xpath expr="/form//field[@name='vehicle_driver_name']" position="attributes">
+                <attribute name="string">Receiver Name</attribute>
+            </xpath>
+            <xpath expr="/form//field[@name='corresponding_company']" position="attributes">
+                <attribute name="string">Department/Customer</attribute>
+            </xpath> -->
         </field>
     </record>
 </odoo>

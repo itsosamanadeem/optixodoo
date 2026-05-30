@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stock_serial_import_wizard_form" model="ir.ui.view">
+        <field name="name">stock.serial.import.wizard.form</field>
+        <field name="model">stock.serial.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Serial Numbers">
+                <group>
+                    <field name="move_id" invisible="1"/>
+                    <field name="file_name" invisible="1"/>
+                    <field name="file" filename="file_name"/>
+                </group>
+                <footer>
+                    <button name="action_import" string="Import" type="object" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

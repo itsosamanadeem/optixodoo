@@ -194,7 +194,8 @@ class PurchaseOrder(models.Model):
                     )% (line.product_id.analytic_gl_id))
                 ac = self.env['budget.line'].sudo().search([
                     ('account_id', '=', line.department_id.analytic_account_id.id),
-                    ('x_plan10_id','=',line.product_id.analytic_gl_id),
+                    ('x_plan8_id','=',line.product_id.analytic_gl_id),
+                    ('product_id','=',line.product_id.id),
                     ('budget_analytic_id.state','=','done')
                 ], limit=1)
                 if not ac or not ac.budget_analytic_id:

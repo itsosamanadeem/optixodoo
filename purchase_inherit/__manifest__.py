@@ -20,6 +20,7 @@
                 'analytic',
                 'product',
                 'repair',
+                'gatepass_slip',
     ],
     "data": [
         #security
@@ -28,6 +29,7 @@
         "security/ir.model.access.csv",
 
         #data
+        "data/partner_sequence.xml",
         "data/product_sequence.xml",
         
         #views
@@ -41,10 +43,15 @@
         "views/purchase.xml",
         "views/repair_order.xml",
         "views/stock_picking.xml",
+        "views/stock_move_line.xml",
+        "views/res_partner.xml",
+        "views/account_tax.xml",
         
         #wizards
         "wizard/budget_wizard.xml",
         "wizard/city_warning_wizard.xml",
+        "wizard/stock_serial_import_wizard.xml",
+        "wizard/account_payment_register_wizard.xml",
     ],
     'assets': {
         'web.assets_backend': [

@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import fields, models #type: ignore
 
 
 class StockPicking(models.Model):
@@ -11,6 +11,12 @@ class StockPicking(models.Model):
     asset_tag_no = fields.Char(
         string="Asset Tag No.",
         compute="_compute_product_info_fields",
+    )
+    customer_cnic_number = fields.Char(
+        string="Customer CNIC",
+        related="partner_id.cnic_number",
+        store=True,
+        readonly=True,
     )
 
     def _compute_product_info_fields(self):

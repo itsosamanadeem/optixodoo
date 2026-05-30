@@ -1,0 +1,305 @@
+            
+from collections import defaultdict
+
+from odoo import models, fields, _ , api #type:ignore
+from odoo.exceptions import UserError #type:ignore
+import json
+import logging
+_logger = logging.getLogger(__name__)
+
+class ApprovalForm(models.Model):
+    _inherit = 'approval.request'
+
+    amount = fields.Float( string="Amount",compute="_compute_amount",readonly=True, store=True)
+    request_status = fields.Selection([
+        ('new', 'To Submit'),
+        ('pending', 'Submitted'),
+        ('approved', 'Approved'),
+        ('partial_approved', 'Partial Approved'),
+        ('refused', 'Refused'),
+        ('cancel', 'Canceled'),
+    ], default="new", compute="_compute_request_status",
+        store=True, index=True, tracking=True,
+        group_expand=True)
+    
+    @staticmethod
+    def _line_qty(line):
+        return line.po_uom_qty or line.quantity or 0.0
+    
+    @api.depends('product_line_ids', 'product_line_ids.manager_refused', 'request_status')
+    def _compute_amount(self):
+        for rec in self:
+            active_lines = rec.product_line_ids.filtered(lambda l: not l.manager_refused and l.price_unit)
+            rec.amount = sum(active_lines.mapped(lambda l: l.price_unit * (l.po_uom_qty or 1)))
+
+    def _promote_next_waiting_approvers(self):
+        """Advance approval queue: if no pending approver exists, move next waiting sequence to pending."""
+        for request in self:
+            approvers = request.approver_ids.sudo()
+            if not approvers:
+                continue
+            if approvers.filtered(lambda a: a.status == 'pending'):
+                continue
+            waiting = approvers.filtered(lambda a: a.status == 'waiting')
+            if not waiting:
+                continue
+            next_sequence = min(waiting.mapped('sequence'))
+            waiting.filtered(lambda a: a.sequence == next_sequence).write({'status': 'pending'})
+            
+    def action_confirm(self):
+        skip_city_check = self.env.context.get('skip_city_check')
+        for request in self:
+            departments = request.product_line_ids.mapped('department_id')
+            approvers_to_add = []
+            for department in departments:
+                if not department:
+                    continue
+                manager_employee = department.manager_id
+                if not manager_employee:
+                    raise UserError(_("Department '%s' has no manager assigned.") % department.name)
+                manager_user = manager_employee.user_id
+                if not manager_user:
+                    raise UserError(
+                        _("Manager '%s' of department '%s' has no linked user.")
+                        % (manager_employee.name, department.name)
+                    )
+                if not skip_city_check and department.analytic_city_id.name == '000':
+                    return {
+                        'type': 'ir.actions.act_window',
+                        'name': 'City Warning',
+                        'res_model': 'city.warning.wizard',
+                        'view_mode': 'form',
+                        'target': 'new',
+                        'context': {
+                            'default_request_id': request.id,
+                            'default_message': _(
+                                "City for department '%s'.\n\n"
+                                "is: %s\n"
+                                "Do you want to proceed?"
+                            ) % (
+                                department.name,
+                                department.analytic_city_id.name,
+                            )
+                        }
+                    }
+                if manager_user.id not in request.approver_ids.mapped('user_id').ids:
+                    approvers_to_add.append(manager_user.id)
+            if approvers_to_add:
+                existing_sequences = request.approver_ids.mapped('sequence')
+                next_sequence = max(existing_sequences, default=0) + 1
+                request.sudo().write({
+                    'approver_ids': [
+                        (0, 0, {
+                            'user_id': uid,
+                            'required': True,
+                            # Same sequence => all department managers can approve in parallel.
+                            'sequence': next_sequence,
+                        }) for uid in approvers_to_add
+                    ]
+                })
+            if not request.approver_ids:
+                raise UserError(_("You must have at least one approver before confirming."))
+            
+        return super().action_confirm()
+
+    def action_create_purchase_orders(self):
+        sudo_self = self.sudo()
+        res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
+        
+        sudo_self._create_activity()
+        if self.env.user.has_group('purchase_inherit.group_scm_user'):
+            for rec in self:
+                rec._mark_scm_activities_done()
+                
+        return res
+
+    def action_draft(self):
+        for request in self:
+            owner_user = False
+            if 'request_owner_id' in request._fields:
+                owner_user = request.request_owner_id
+            elif 'owner_id' in request._fields:
+                owner_user = request.owner_id
+            if not owner_user:
+                owner_user = request.create_uid
+
+            if (
+                owner_user
+                and owner_user != self.env.user
+                and not self.env.user.has_group('approvals.group_approval_manager')
+            ):
+                raise UserError(_("Only the requester or an Approval Manager can reset to draft this request."))
+            request.product_line_ids.sudo().write({
+                'manager_refused': False,
+                'manager_refused_by_id': False,
+                'manager_refused_date': False,
+                'status': 'approved',
+            })
+            request._compute_amount()
+        return super(ApprovalForm, self.sudo()).action_draft()
+    
+    def action_cancel(self):
+        for request in self:
+            owner_user = False
+            if 'request_owner_id' in request._fields:
+                owner_user = request.request_owner_id
+            elif 'owner_id' in request._fields:
+                owner_user = request.owner_id
+            if not owner_user:
+                owner_user = request.create_uid
+
+            if (
+                owner_user
+                and owner_user != self.env.user
+                and not self.env.user.has_group('approvals.group_approval_manager')
+            ):
+                raise UserError(_("Only the requester or an Approval Manager can cancel this request."))
+
+        return super(ApprovalForm, self.sudo()).action_cancel()
+    
+    def action_approve(self, approver=None):
+        res = super().action_approve(approver=approver)
+        for request in self:
+            if request.product_line_ids.filtered(lambda l: l.manager_refused):
+                # If any line is refused by a manager, the request cannot be fully approved.
+                request.write({'request_status': 'partial_approved'})
+        return res
+    
+    def _create_purchase_orders(self):
+        sudo_self = self.sudo()
+        sudo_self.product_line_ids._check_products_vendor()
+
+        po_model = self.env['purchase.order'].sudo()
+        po_line_model = self.env['purchase.order.line'].sudo()
+        created_po_count = 0
+
+        for request in sudo_self:
+            # RFQ grouping rule requested:
+            # 1) same product + same department => merge in one PO line (sum qty)
+            # 2) different products (even same department) => different POs
+            # 3) same product + different departments => same PO, multiple lines
+            lines_by_po_key = defaultdict(list)
+            for line in request.product_line_ids.filtered(lambda l: not l.manager_refused and l.status != 'refused'):
+                qty_for_seller = self._line_qty(line) or 1.0
+                seller = line.seller_id or line.product_id.with_company(line.company_id)._select_seller(
+                    quantity=qty_for_seller,
+                    uom_id=line.product_id.uom_id,
+                )
+                if not seller:
+                    continue
+                vendor = seller.partner_id
+                po_key = (vendor.id, line.company_id.id, line.product_id.id)
+                lines_by_po_key[po_key].append((line, seller, vendor))
+
+            for _, packed_lines in lines_by_po_key.items():
+                first_line, _, first_vendor = packed_lines[0]
+                po_vals = first_line._get_purchase_order_values(first_vendor)
+                purchase_order = po_model.create(po_vals)
+                created_po_count += 1
+                lines_by_department = defaultdict(list)
+                for line, seller, _vendor in packed_lines:
+                    lines_by_department[line.department_id.id].append((line, seller))
+
+                for department_id, dept_lines in lines_by_department.items():
+                    base_line, base_seller = dept_lines[0]
+                    total_po_uom_qty = sum((self._line_qty(l) or 0.0) for l, _s in dept_lines)
+                    total_amount = sum(((l.price_unit or 0.0) * (self._line_qty(l) or 0.0)) for l, _s in dept_lines)
+                    unit_price = (total_amount / total_po_uom_qty) if total_po_uom_qty else (base_line.price_unit or 0.0)
+
+                    po_line_vals = po_line_model._prepare_purchase_order_line(
+                        base_line.product_id,
+                        total_po_uom_qty,
+                        base_seller.product_uom_id,
+                        base_line.company_id,
+                        first_vendor,
+                        purchase_order,
+                    )
+                    po_line = po_line_model.create(po_line_vals)
+                    po_line.write({
+                        'department_id': department_id,
+                        'analytic_distribution': base_line.analytic_distribution,
+                        'price_unit': unit_price,
+                    })
+                    for line, _seller in dept_lines:
+                        line.purchase_order_line_id = po_line.id
+
+        if not created_po_count:
+            raise UserError(
+                "No Purchase Order was created. Please ensure approved lines have a vendor and non-zero quantity."
+            )
+        return True
+
+
+    def action_refuse(self, approver=None):
+        """
+        Department manager refusal only affects that manager's department lines.
+        The whole request is refused only if all lines end up refused.
+        """
+        fully_refused_requests = self.env['approval.request']
+        for request in self:
+            if request.env.user in request.approver_ids.mapped('user_id'):
+                manager_lines = request.product_line_ids.filtered(
+                    lambda l: l.department_id.manager_id.user_id == request.env.user
+                )
+                for line in manager_lines:
+                    line.sudo().write({
+                        'manager_refused': True,
+                        'status': 'refused',
+                        'manager_refused_by_id': request.env.user.id,
+                        'manager_refused_date': fields.Datetime.now(),
+                    })
+                approver_line = self.env['approval.approver'].sudo().search([
+                    ('user_id', '=', request.env.user.id),
+                    ('request_id', '=', request.id)
+                ], limit=1)
+                remaining_lines = request.product_line_ids.filtered(lambda l: not l.manager_refused and l.status != 'refused')
+                if not remaining_lines:
+                    if approver_line:
+                        approver_line.sudo().write({'status': 'refused'})
+                    fully_refused_requests |= request
+                else:
+                    # Do not refuse the full request yet; this approver has completed their decision.
+                    if approver_line:
+                        approver_line.sudo().write({'status': 'approved'})
+                    request._promote_next_waiting_approvers()
+        # Only run the standard refusal flow for requests where every line is refused.
+        if fully_refused_requests:
+            return super(ApprovalForm, fully_refused_requests).action_refuse(approver=approver)
+        return True
+    
+    def _create_activity(self):        
+        scm_group = self.env.ref('purchase_inherit.group_scm_user')
+        scm_users = scm_group.user_ids
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+        model_id = self.env['ir.model']._get('approval.request').id
+        for request in self:
+            for user in scm_users:
+                # Create Activity
+                self.env['mail.activity'].create({
+                    'activity_type_id': activity_type.id,
+                    'summary': 'New Purchase Request',
+                    'note': f'PR {request.name} requires SCM review',
+                    'user_id': user.id,
+                    'res_id': request.id,
+                    'res_model_id': model_id,
+                })
+                # Send Email
+                if user.partner_id.email:
+                    request.message_post(
+                        body=f"New Purchase Request {request.name} requires your review.",
+                        partner_ids=[user.partner_id.id],
+                        subtype_xmlid="mail.mt_comment",
+                    )
+    
+    def _mark_scm_activities_done(self):
+        scm_group = self.env.ref('purchase_inherit.group_scm_user')
+        scm_user_ids = scm_group.users.ids
+
+        activities = self.env['mail.activity'].search([
+            ('res_model', '=', 'approval.request'),
+            ('res_id', '=', self.id),
+            ('user_id', 'in', scm_user_ids),
+            ('activity_type_id', '=', self.env.ref('mail.mail_activity_data_todo').id)
+        ])
+
+        activities.action_done()
