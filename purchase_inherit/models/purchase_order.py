@@ -195,7 +195,7 @@ class PurchaseOrder(models.Model):
                 ac = self.env['budget.line'].sudo().search([
                     ('account_id', '=', line.department_id.analytic_account_id.id),
                     ('x_plan8_id','=',line.department_id.analytic_gl_id.id),
-                    ('budget_analytic_id.state','=','open')
+                    ('budget_analytic_id.state','=','confirmed')
                 ], limit=1)
                 # raise UserError(str(ac))
                 if not ac or not ac.budget_analytic_id:
