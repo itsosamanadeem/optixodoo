@@ -61,14 +61,10 @@ class ApprovalProductLine(models.Model):
         for rec in self:
             rec.is_service_product = rec.product_id.type == "service"
             
-    @api.depends('product_id', 'product_id.analytic_gl_id')
+    @api.depends('product_id', 'product_id.property_account_expense_id', 'product_id.property_account_expense_id.display_name')
     def _compute_product_gl(self):
         for rec in self:
-            gl = rec.product_id.analytic_gl_id
-            if gl:
-                rec.product_gl_description = gl.name
-            else:
-                rec.product_gl_description = ''
+            rec.product_gl_description = rec.product_id.property_account_expense_id.display_name if rec.product_id else False
             
     department_analytic_account_id = fields.Many2one(
         "account.analytic.account",
@@ -95,26 +91,26 @@ class ApprovalProductLine(models.Model):
         readonly=True,
     )
     
-    @api.depends('department_analytic_account_id','department_id','product_id')
+    @api.depends('department_analytic_account_id','department_id','department_id.analytic_gl_id', 'department_analytic_city_id')
     def _compute_analytic_distribution(self):
         # Keep the base analytic behavior, then auto-fill from department cost center.
         super()._compute_analytic_distribution()
         for rec in self:
             aa_id = rec.department_analytic_account_id.id
             ac_id = rec.department_analytic_city_id.id
-            gl_id = rec.product_id.analytic_gl_id.id
+            gl_id = rec.department_id.analytic_gl_id.id
             key = self._distribution_key(aa_id, ac_id, gl_id)
             if key and not rec.analytic_distribution:
                 rec.analytic_distribution = {key: 100}
 
-    @api.onchange('department_id','product_id')
+    @api.onchange('department_id','department_id.analytic_gl_id','department_analytic_city_id')
     def _onchange_department_id_set_analytic_distribution(self):
         for rec in self:
             if not rec.department_id:
                 continue
             aa = rec.department_id.analytic_account_id
             ac = rec.department_id.analytic_city_id
-            gl_id = rec.product_id.analytic_gl_id
+            gl_id = rec.department_id.analytic_gl_id
             key = self._distribution_key(aa.id, ac.id, gl_id.id)
             if key:
                 rec.analytic_distribution = {key: 100}

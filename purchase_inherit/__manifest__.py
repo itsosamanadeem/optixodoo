@@ -41,6 +41,7 @@
         "views/approvals_menu_rename.xml",
         "views/purchase_order_line_views.xml",
         "views/purchase.xml",
+        "views/purchase_order_report.xml",
         "views/repair_order.xml",
         "views/stock_picking.xml",
         "views/stock_move_line.xml",

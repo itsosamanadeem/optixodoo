@@ -13,4 +13,4 @@ class BudgetAnalytics(models.Model):
 class BudgetLine(models.Model):
     _inherit="budget.line"
     
-    product_id = fields.Many2one('product.template', string="Product", required=True)
+    product_id = fields.Many2one('product.template', string="Product", required=False)

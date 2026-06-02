@@ -2,175 +2,233 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Multi-Level Purchase Approval - Zalino Tech</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- Bootstrap 5 CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
+    <title>Purchase Approval Flow</title>
     <style>
         body {
-            background-color: #f8f9fa;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f6f7fb;
+            color: #243447;
         }
-        .app-title {
-            border-bottom: 3px solid #198754;
-            padding-bottom: 10px;
-            margin-bottom: 30px;
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 16px 48px;
         }
-        .feature-card {
-            background: #fff;
+        .hero,
+        .section,
+        .feature,
+        .step,
+        .shot {
+            background: #ffffff;
+            border: 1px solid #dde3ea;
+            border-radius: 12px;
+        }
+        .hero {
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+        .hero h1 {
+            margin: 0 0 12px;
+            font-size: 34px;
+            color: #0f172a;
+        }
+        .hero p {
+            margin: 0;
+            font-size: 17px;
+            line-height: 1.7;
+        }
+        .section {
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .section h2 {
+            margin: 0 0 12px;
+            font-size: 24px;
+            color: #0f172a;
+        }
+        .section p,
+        .section li {
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .feature,
+        .step {
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-            transition: transform 0.3s ease;
         }
-        .feature-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        .feature h3,
+        .step h3,
+        .shot h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            color: #111827;
         }
-        .feature-icon {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
+        .feature p,
+        .step p,
+        .shot p {
+            margin: 0;
         }
-        .section-title {
-            color: #198754;
-            margin-top: 40px;
-            margin-bottom: 20px;
+        .shot {
+            overflow: hidden;
         }
-        .screenshot {
-            border: 1px solid #dee2e6;
-            padding: 5px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            max-width: 100%;
-            margin-bottom: 20px;
+        .shot img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-bottom: 1px solid #dde3ea;
         }
-        .highlight {
-            background-color: #e9f7ef;
-            border-left: 5px solid #198754;
-            padding: 15px;
-            margin-bottom: 20px;
+        .shot .content {
+            padding: 16px;
         }
-        .testimonial {
-            background: #e9f7ef;
-            padding: 25px;
-            border-left: 5px solid #198754;
-            border-radius: 10px;
-            margin: 40px 0;
+        .badge-row {
+            margin-top: 16px;
         }
-        footer {
-            text-align: center;
-            padding: 25px 0;
-            margin-top: 50px;
-            background: #198754;
-            color: white;
-            border-radius: 10px;
+        .badge {
+            display: inline-block;
+            margin: 0 8px 8px 0;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #e8eefc;
+            color: #2447a5;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .support {
+            margin-top: 8px;
+        }
+        .support a {
+            color: #2447a5;
+            text-decoration: none;
         }
     </style>
 </head>
-<body class="container py-5">
+<body>
+    <div class="page">
+        <div class="hero">
+            <h1>Purchase Approval Flow</h1>
+            <p>
+                Add a structured approval chain to Odoo purchase orders with configurable groups,
+                amount-based levels, recommendation steps, approval actions, and full history tracking.
+            </p>
+            <div class="badge-row">
+                <span class="badge">Odoo 19</span>
+                <span class="badge">Purchase</span>
+                <span class="badge">Multi-Level Approval</span>
+                <span class="badge">Audit Trail</span>
+            </div>
+        </div>
 
+        <div class="section">
+            <h2>Key Features</h2>
+            <div class="grid">
+                <div class="feature">
+                    <h3>Approval Groups</h3>
+                    <p>Create separate approval policies for different teams, departments, or purchasing scenarios.</p>
+                </div>
+                <div class="feature">
+                    <h3>Amount-Based Levels</h3>
+                    <p>Define minimum and maximum amounts for each level so purchase orders route automatically.</p>
+                </div>
+                <div class="feature">
+                    <h3>Recommendation and Approval</h3>
+                    <p>Mix recommendation stages and final approval stages in the same purchase workflow.</p>
+                </div>
+                <div class="feature">
+                    <h3>User Assignment</h3>
+                    <p>Assign specific users to each approval level and display actions only to eligible approvers.</p>
+                </div>
+                <div class="feature">
+                    <h3>Return with Comments</h3>
+                    <p>Send a purchase order back for correction with a clear comment for the requester.</p>
+                </div>
+                <div class="feature">
+                    <h3>Approval History</h3>
+                    <p>Track requests, recommendations, approvals, returns, comments, and timestamps on each order.</p>
+                </div>
+            </div>
+        </div>
 
+        <div class="section">
+            <h2>How It Works</h2>
+            <div class="grid">
+                <div class="step">
+                    <h3>1. Configure Groups</h3>
+                    <p>Create an approval group and define the levels, thresholds, and users responsible for each stage.</p>
+                </div>
+                <div class="step">
+                    <h3>2. Assign on Purchase Order</h3>
+                    <p>Select the approval group on a purchase order before sending it into the approval process.</p>
+                </div>
+                <div class="step">
+                    <h3>3. Route by Amount</h3>
+                    <p>The order moves through the configured chain according to its total amount and current step.</p>
+                </div>
+                <div class="step">
+                    <h3>4. Keep a Full Audit Trail</h3>
+                    <p>Every request, comment, return, recommendation, and approval is recorded on the order.</p>
+                </div>
+            </div>
+        </div>
 
-    <h1 class="app-title">Multi-Level Purchase Approval</h1>
-    <p class="lead">
-        <strong>App Summary:</strong>
-        Advanced approval workflow management for Odoo v19 with configurable approval groups, levels, and amount thresholds. This module ensures purchases are approved according to your organization's structure and policies.
-    </p>
+        <div class="section">
+            <h2>Screenshots</h2>
+            <div class="grid">
+                <div class="shot">
+                    <img src="assets/screenshots/1.png" alt="Approval group configuration">
+                    <div class="content">
+                        <h3>Approval group configuration</h3>
+                        <p>Set up approval groups with multiple levels, user assignments, and amount ranges.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/2_screenshot.png" alt="Purchase order with approval details">
+                    <div class="content">
+                        <h3>Purchase order approval details</h3>
+                        <p>View the selected approval group, current level, and pending approver directly on the order.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/3.png" alt="Recommendation action on purchase order">
+                    <div class="content">
+                        <h3>Recommendation stage</h3>
+                        <p>Authorized users can recommend or return the purchase order from the approval step.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/4.png" alt="Comment wizard for recommendation or return">
+                    <div class="content">
+                        <h3>Comment wizard</h3>
+                        <p>Capture comments when recommending or returning a purchase order for better communication.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/5.png" alt="Approval history on purchase order">
+                    <div class="content">
+                        <h3>Approval history</h3>
+                        <p>Review the full sequence of actions, users, notes, and timestamps in one place.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/6.png" alt="Approval action for authorized user">
+                    <div class="content">
+                        <h3>Final approval action</h3>
+                        <p>Display the approval action only when the current user and order amount match the configured level.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <!-- Features -->
-    <h2 class="section-title">Key Features</h2>
-    <div class="row">
-        <div class="col-md-4">
-            <div class="feature-card text-center">
-                <div class="feature-icon">👥</div>
-                <h5>Approval Groups</h5>
-                <p>Create and configure approval groups with custom hierarchies to match your organizational structure.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="feature-card text-center">
-                <div class="feature-icon">💰</div>
-                <h5>Amount Thresholds</h5>
-                <p>Set minimum and maximum amount limits for each approval level with automatic routing based on purchase order value.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="feature-card text-center">
-                <div class="feature-icon">🔗</div>
-                <h5>Multi-Level Workflow</h5>
-                <p>Sequential approval processes through configured levels with support for both recommendation and approval stages.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="feature-card text-center">
-                <div class="feature-icon">📜</div>
-                <h5>Approval History</h5>
-                <p>Maintain complete audit trail of all approval actions with user comments and timestamps.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="feature-card text-center">
-                <div class="feature-icon">🔌</div>
-                <h5>Seamless Integration</h5>
-                <p>Fully integrated with standard Odoo purchase workflow while maintaining all native functionality.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="feature-card text-center">
-                <div class="feature-icon">⚙️</div>
-                <h5>User Management</h5>
-                <p>Assign specific users to each approval level with configurable permissions and access rights.</p>
-            </div>
+        <div class="section">
+            <h2>Support</h2>
+            <p>This module depends on the standard Odoo Purchase application.</p>
+            <p class="support">Support: <a href="mailto:support@zalinotech.com">support@zalinotech.com</a></p>
         </div>
     </div>
-
-    <!-- Screenshots -->
-    <h2 class="section-title">Module Screenshots</h2>
-    <div class="row">
-        <div class="col-md-4">
-            <img src="assets/screenshots/1.png" class="screenshot img-fluid rounded" alt="Approval Configuration">
-        </div>
-        <div class="col-md-4">
-            <img src="assets/screenshots/2.png" class="screenshot img-fluid rounded" alt="Product Form">
-        </div>
-        <div class="col-md-4">
-            <img src="assets/screenshots/3.png" class="screenshot img-fluid rounded" alt="Recommend & Return Buttons">
-        </div>
-        <div class="col-md-4">
-            <img src="assets/screenshots/4.png" class="screenshot img-fluid rounded" alt="Comment Popup">
-        </div>
-        <div class="col-md-4">
-            <img src="assets/screenshots/5.png" class="screenshot img-fluid rounded" alt="Approval Comments">
-        </div>
-        <div class="col-md-4">
-            <img src="assets/screenshots/6.png" class="screenshot img-fluid rounded" alt="Approval Button">
-        </div>
-        <div class="col-md-4">
-            <img src="assets/screenshots/7.png" class="screenshot img-fluid rounded" alt="Approved Order">
-        </div>
-    </div>
-
-    <!-- Testimonial -->
-    <div class="testimonial">
-        <p>"The Multi-Level Purchase Approval module has transformed our procurement process. Complete control over approvals with a clear audit trail."</p>
-        <p class="fw-bold">- Procurement Manager, Manufacturing Company</p>
-    </div>
-
-    <!-- Closing Remarks -->
-    <h2 class="section-title">Closing Remarks</h2>
-    <div class="highlight">
-        <p>The <b>Zalino Tech Multi-Level Purchase Approval App</b> ensures structured and auditable purchase approvals in Odoo v19. It streamlines workflow, enforces policies, and provides full traceability.</p>
-    </div>
-
-    <!-- Footer -->
-    <footer>
-        <p>Multi-Level Purchase Approval for Odoo v19</p>
-        <p>Developed by Zalino Tech Private Limited</p>
-    </footer>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

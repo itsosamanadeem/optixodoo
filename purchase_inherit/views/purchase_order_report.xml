@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_purchaseorder_document_optix_inherit" inherit_id="purchase.report_purchaseorder_document">
+
+        <xpath expr="//div[@id='informations']" position="replace">
+            <div id="informations" class="row mt16 mb16">
+                <div class="col-6">
+                    <strong>REQUESTED BY</strong>:
+                    <span t-field="o.user_id"/>
+                    <br/>
+                    <strong>PROJ/CUSTOMER Name &amp; Code</strong>:
+                    <span t-esc="o.origin or ''"/>
+                    <br/>
+                    <strong>DELIVERY TERM</strong>:
+                    <span t-esc="o.incoterm_id and o.incoterm_id.code or ''"/>
+                    <br/>
+                    <strong>PAYMENT TERMS</strong>:
+                    <span t-esc="o.payment_term_id and o.payment_term_id.name or ''"/>
+                    <br/>
+                    <strong>QUOTE REFERENCE</strong>:
+                    <span t-esc="o.partner_ref or ''"/>
+                </div>
+                <div class="col-6">
+                    <strong>DELIVERY DATE</strong>:
+                    <span t-esc="max(o.order_line.mapped('date_planned')).strftime('%d-%b-%y') if o.order_line else ''"/>
+                    <br/>
+                    <strong>BUSINESS UNIT</strong>:
+                    <span t-esc="o.company_id.name or ''"/>
+                    <br/>
+                    <strong>INTERNAL DEPTT.</strong>:
+                    <span t-esc="o.department_id and o.department_id.name or ''"/>
+                    <br/>
+                    <strong>DELIVERY LOCATION</strong>:
+                    <span t-esc="o.dest_address_id and o.dest_address_id.display_name or (o.picking_type_id and o.picking_type_id.warehouse_id and o.picking_type_id.warehouse_id.name) or ''"/>
+                </div>
+            </div>
+        </xpath>
+
+        <xpath expr="//thead/tr" position="replace">
+            <tr>
+                <th><strong>Sr#</strong></th>
+                <th><strong>Item Code</strong></th>
+                <th class="text-start"><strong>Description</strong></th>
+                <th class="text-end"><strong>Quantity</strong></th>
+                <th class="text-start"><strong>Unit</strong></th>
+                <th class="text-end"><strong>Unit Price</strong></th>
+                <th class="text-end"><strong>Extended Price</strong></th>
+            </tr>
+        </xpath>
+
+        <xpath expr="//table[contains(@class,'o_main_table')]/tbody" position="replace">
+            <tbody>
+                <t t-foreach="o.order_line.filtered(lambda l: l.display_type or l.product_qty != 0)" t-as="line">
+                    <tr t-att-class="'fw-bolder o_line_section' if line.display_type == 'line_section' else 'fw-bold o_line_subsection' if line.display_type == 'line_subsection' else 'fst-italic o_line_note' if line.display_type == 'line_note' else ''">
+                        <t t-if="not line.display_type">
+                            <td>
+                                <span t-esc="line_index + 1"/>
+                            </td>
+                            <td>
+                                <span t-esc="line.product_id.default_code or ''"/>
+                            </td>
+                            <td class="text-start">
+                                <span t-field="line.name"/>
+                            </td>
+                            <td class="text-end">
+                                <span t-field="line.product_qty"/>
+                            </td>
+                            <td class="text-start">
+                                <span t-field="line.product_uom_id.name"/>
+                            </td>
+                            <td class="text-end">
+                                <span t-field="line.price_unit"/>
+                            </td>
+                            <td class="text-end">
+                                <span t-field="line.price_subtotal" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.currency_id}"/>
+                            </td>
+                        </t>
+                        <t t-if="line.display_type in ('line_section', 'line_subsection')">
+                            <td colspan="7" id="section">
+                                <span t-field="line.name"/>
+                            </td>
+                        </t>
+                        <t t-if="line.display_type == 'line_note'">
+                            <td colspan="7" id="note">
+                                <span t-field="line.name"/>
+                            </td>
+                        </t>
+                    </tr>
+                </t>
+            </tbody>
+        </xpath>
+
+        <xpath expr="//table[contains(@class,'o_main_table')]" position="after">
+            <div class="row mt16">
+                <div class="col-7"/>
+                <div class="col-5">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>TOTAL AMOUNT:</strong></td>
+                            <td class="text-end"><span t-field="o.amount_untaxed"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>DISCOUNT:</strong></td>
+                            <td class="text-end">0.00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>OTHER CHARGES:</strong></td>
+                            <td class="text-end">0.00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SALES TAX:</strong></td>
+                            <td class="text-end"><span t-field="o.amount_tax"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>GRAND TOTAL:</strong></td>
+                            <td class="text-end"><span t-field="o.amount_total"/></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="mt8">
+                <strong>AMOUNT IN WORDS:</strong>
+                <span t-esc="o.currency_id and o.currency_id.amount_to_text(o.amount_total) or ''"/>
+            </div>
+            <div class="mt16">
+                <strong>Special terms &amp; conditions:</strong>
+                <p class="mb-0">1- In case of delay in provision of services, Penalty of 2% per day, per site shall be imposed upto a maximum of 25 % of the total value of the PO, after which Optix reserves the right to cancel the order and place PO with some other vendor.</p>
+                <p class="mb-0">2- Contractor shall indemnify Optix and keep Optix harmless from and against all loses, cost, expenses, claims and suits incurred due to any violation of the purchase order and specifications.</p>
+                <p class="mb-0">3- Any change in delivery timeline shall be intimated to SCM at least 5 days prior to the delivery date.</p>
+            </div>
+        </xpath>
+    </template>
+</odoo>
