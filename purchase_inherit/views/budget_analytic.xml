@@ -7,6 +7,9 @@
             <xpath expr="//field[@name='budget_type']" position="after">
                 <field name="configuration" widget="radio" readonly="state != 'draft'"/>
             </xpath>
+            <xpath expr="/form/sheet/notebook/page[@name='budget_lines']/field[@name='budget_line_ids']/list//field[@name='account_id']" position="after">
+                <field optional="show" name="product_id"/>
+            </xpath>
         </field>
     </record>
 </odoo>

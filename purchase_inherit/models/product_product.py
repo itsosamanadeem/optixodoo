@@ -1,4 +1,5 @@
-from odoo import api, fields, models
+from odoo import api, fields, models #type: ignore
+from odoo.exceptions import UserError #type: ignore
 
 
 class ProductTemplate(models.Model):
@@ -13,13 +14,6 @@ class ProductTemplate(models.Model):
                 ) or "New"
         return super().create(vals_list)
 
-    analytic_gl_id = fields.Many2one(
-        "account.analytic.account",
-        string="GL",
-        help="Analytic account used as the GL account.",
-        domain=[("plan_id.name", "ilike", "GL")],
-    )
-    
     warrenty_time = fields.Integer(string="Warrent")
     asset_tag_no = fields.Char(string="Asset Tag No.")
     

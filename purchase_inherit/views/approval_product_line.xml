@@ -29,6 +29,7 @@
                     <field name="department_analytic_city_id" column_invisible="1"/>
                     <field optional="show" name="analytic_distribution" widget="analytic_distribution_po"/>
                     <field name="description"/>
+                    <field name="status" optional="show" />
                     <field name="product_gl_description" optional="show"/>
                     <field name="price_unit" optional="show" readonly="not is_service_product"/>
                     <field name="quantity" column_invisible="parent.has_quantity == 'no'" required="parent.has_quantity == 'required' and parent.request_status != 'new'"/>
@@ -39,6 +40,10 @@
             <xpath expr="/form//button[@name='action_create_purchase_orders']" position="attributes">
                 <attribute name="groups"/>
                 <attribute name="string">Purchase Request</attribute>
+                <attribute name="invisible">approval_type != 'purchase' or request_status not in ('approved', 'partial_approved')</attribute>
+            </xpath>
+            <xpath expr="/form/header/field[@name='request_status']" position="attributes">
+                <attribute name="statusbar_visible">new,pending,approved,partial_approved,refused,cancel</attribute>
             </xpath>
             <xpath expr="/form//button[@name='action_draft']" position="attributes">
                 <attribute name="invisible">request_status != "cancel"</attribute>

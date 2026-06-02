@@ -9,6 +9,9 @@
                 <field name="analytic_account_id"/>
             </xpath>
             <xpath expr="//field[@name='analytic_account_id']" position="after">
+                <field name="analytic_gl_id"/>
+            </xpath>
+            <xpath expr="//field[@name='analytic_gl_id']" position="after">
                 <field name="analytic_city_id"/>
             </xpath>
         </field>

@@ -188,15 +188,16 @@ class PurchaseOrder(models.Model):
                         "Please set an analytic account for department '%s'."
                     ) % (line.department_id.name or 'Unknown'))
                 
-                if not line.product_id.analytic_gl_id:
+                if not line.department_id.analytic_gl_id:
                     raise UserError(_(
                         "Please set analytic GL for this product '%s'."
-                    )% (line.product_id.analytic_gl_id))
+                    )% (line.department_id.analytic_gl_id))
                 ac = self.env['budget.line'].sudo().search([
                     ('account_id', '=', line.department_id.analytic_account_id.id),
-                    ('x_plan10_id','=',line.product_id.analytic_gl_id),
-                    ('budget_analytic_id.state','=','done')
+                    ('x_plan8_id','=',line.department_id.analytic_gl_id.id),
+                    ('budget_analytic_id.state','=','open')
                 ], limit=1)
+                # raise UserError(str(ac))
                 if not ac or not ac.budget_analytic_id:
                     raise UserError(_("No budget configuration found for the analytic account '%s'.") % line.department_id.analytic_account_id.name)
                 configuration = ac.budget_analytic_id.sudo().configuration
