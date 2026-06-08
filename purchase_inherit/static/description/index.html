@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Purchase Control Hub</title>
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #183247;
+            font-family: Arial, sans-serif;
+        }
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 16px 40px;
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid #d8e1ea;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .hero img,
+        .visual img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .content {
+            padding: 28px;
+        }
+        h1, h2, h3 {
+            margin-top: 0;
+            color: #102334;
+        }
+        h1 {
+            font-size: 34px;
+            margin-bottom: 12px;
+        }
+        h2 {
+            font-size: 26px;
+            margin-bottom: 12px;
+        }
+        h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        p, li {
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        .badges {
+            margin-top: 16px;
+        }
+        .badge {
+            display: inline-block;
+            margin: 0 8px 8px 0;
+            padding: 8px 12px;
+            background: #e7f5ef;
+            color: #146b56;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .feature {
+            border: 1px solid #d8e1ea;
+            border-radius: 12px;
+            padding: 18px;
+            background: #fbfdff;
+        }
+        .support a {
+            color: #156c57;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="card hero">
+            <img src="banner.svg" alt="Purchase Control Hub banner">
+            <div class="content">
+                <h1>Purchase Control Hub</h1>
+                <p>
+                    Purchase Control Hub extends Odoo purchasing with stronger governance across
+                    purchase requests, approvals, budgets, analytics, serial tracking, and master data.
+                </p>
+                <div class="badges">
+                    <span class="badge">Odoo 19</span>
+                    <span class="badge">Purchase Requests</span>
+                    <span class="badge">Budget Control</span>
+                    <span class="badge">Serial Import</span>
+                    <span class="badge">Analytic Distribution</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="content">
+                <h2>Why Use This Module</h2>
+                <p>
+                    This module is designed for companies that want tighter procurement control without
+                    splitting the process across many disconnected customizations. It improves how teams
+                    raise purchase requests, route approvals, validate departmental budgets, generate RFQs,
+                    and track incoming serialized items.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="content">
+                <h2>Key Features</h2>
+                <div class="grid">
+                    <div class="feature">
+                        <h3>Department-Based Purchase Requests</h3>
+                        <p>Collect product lines by department, assign department managers as approvers, and support partial refusal handling.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>Purchase Order Approval Chain</h3>
+                        <p>Work with the linked purchase approval flow and add manager review actions, sent-back handling, and activity notifications.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>Budget Enforcement</h3>
+                        <p>Apply budget rules by department with restrict, warning, or allow behavior before final purchase approval.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>Automatic Analytic Distribution</h3>
+                        <p>Fill analytic distribution from department analytic account, city, and GL settings on purchase request and order lines.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>Smart RFQ and PO Creation</h3>
+                        <p>Create purchase orders from approved request lines using vendor, product, and department grouping logic.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>XLSX Serial Import</h3>
+                        <p>Import serial numbers directly into stock operations and support asset tag handling during receipts.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>Master Data Controls</h3>
+                        <p>Generate vendor and product codes automatically, add CNIC on partners, and track product warranty and asset tag fields.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>Role-Based Visibility</h3>
+                        <p>Separate SCM user, SCM manager, CEO, and purchase permissions to keep the procurement process structured.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card visual">
+            <img src="workflow.svg" alt="Procurement workflow overview">
+            <div class="content">
+                <h2>Process Flow</h2>
+                <p>
+                    Purchase Control Hub supports the full path from purchase request submission to
+                    manager review, RFQ creation, budget validation, and serialized receiving.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="content">
+                <h2>Suggested Real Screenshots for Odoo Apps</h2>
+                <ul>
+                    <li>Approval request form with department lines and analytic distribution</li>
+                    <li>Purchase order form showing department managers and manager approvals</li>
+                    <li>Budget warning or restrict popup during approval</li>
+                    <li>Stock operation with the <strong>Import Serials XLSX</strong> action</li>
+                    <li>Product form with asset tag and warranty fields</li>
+                    <li>Vendor form with auto-generated code and CNIC field</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="content support">
+                <h2>Support</h2>
+                <p>Dependencies include Odoo Purchase, Approvals, Budget, Analytic, and related purchasing modules used by this implementation.</p>
+                <p>Email: <a href="mailto:support@zalinotech.com">support@zalinotech.com</a></p>
+                <p>Website: <a href="https://www.zalinotech.com">https://www.zalinotech.com</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

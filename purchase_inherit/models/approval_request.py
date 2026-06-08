@@ -1,8 +1,9 @@
             
 from collections import defaultdict
 
-from odoo import models, fields, _ , api #type:ignore
+from odoo import models, fields,api, _ #type:ignore
 from odoo.exceptions import UserError #type:ignore
+from odoo.tools import html_escape #type:ignore
 import json
 import logging
 _logger = logging.getLogger(__name__)
@@ -25,6 +26,69 @@ class ApprovalForm(models.Model):
     @staticmethod
     def _line_qty(line):
         return line.po_uom_qty or line.quantity or 0.0
+
+    def _create_internal_transfers_for_request(self, request):
+        stock_picking = self.env['stock.picking'].sudo()
+        picking_type = self.env.ref('stock.picking_type_internal')
+        source_location = self.env.ref('stock.stock_location_stock')
+        created_transfer_count = 0
+        move_field_name = 'move_ids_without_package' if 'move_ids_without_package' in stock_picking._fields else 'move_ids'
+
+        transferable_lines = request.product_line_ids.filtered(
+            lambda l: (
+                l.product_id
+                and l.product_id.type == 'consu'
+                and l.is_available_in_inventory
+                and not l.manager_refused
+                and l.status != 'refused'
+            )
+        )
+        # raise UserError(str(transferable_lines.mapped('id')))
+        lines_by_department = defaultdict(list)
+        for line in transferable_lines:
+            if not line.department_id:
+                raise UserError(
+                    _("Please set a department on approval line '%s' before creating an internal transfer.")
+                    % (line.product_id.display_name or line.description or request.name)
+                )
+            if not line.department_id.location_id:
+                raise UserError(
+                    _("Please configure a department stock location for '%s' before creating an internal transfer.")
+                    % line.department_id.display_name
+                )
+            qty = self._line_qty(line)
+            if qty <= 0:
+                continue
+            lines_by_department[(line.company_id.id, line.department_id.id)].append(line)
+
+        for (_company_id, _department_id), department_lines in lines_by_department.items():
+            department = department_lines[0].department_id
+            manager_partner = department.manager_id.user_id.partner_id
+            picking_vals = {
+                'origin': request.name,
+                'partner_id': manager_partner.id if manager_partner else False,
+                'picking_type_id': picking_type.id,
+                'location_id': source_location.id,
+                'location_dest_id': department.location_id.id,
+                move_field_name: [],
+            }
+            for line in department_lines:
+                qty = self._line_qty(line)
+                if qty <= 0:
+                    continue
+                picking_vals[move_field_name].append((0, 0, {
+                    'product_id': line.product_id.id,
+                    'product_uom_qty': qty,
+                    'product_uom': line.product_id.uom_id.id,
+                    'location_id': source_location.id,
+                    'location_dest_id': department.location_id.id,
+                    'company_id': line.company_id.id,
+                }))
+            if picking_vals[move_field_name]:
+                stock_picking.create(picking_vals)
+                created_transfer_count += 1
+
+        return created_transfer_count
     
     @api.depends('product_line_ids', 'product_line_ids.manager_refused', 'request_status')
     def _compute_amount(self):
@@ -105,8 +169,8 @@ class ApprovalForm(models.Model):
     def action_create_purchase_orders(self):
         sudo_self = self.sudo()
         res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
-        
         sudo_self._create_activity()
+        sudo_self._send_po_approval_email_to_scm()
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
             for rec in self:
                 rec._mark_scm_activities_done()
@@ -172,6 +236,7 @@ class ApprovalForm(models.Model):
         po_model = self.env['purchase.order'].sudo()
         po_line_model = self.env['purchase.order.line'].sudo()
         created_po_count = 0
+        created_transfer_count = 0
 
         for request in sudo_self:
             # RFQ grouping rule requested:
@@ -179,7 +244,7 @@ class ApprovalForm(models.Model):
             # 2) different products (even same department) => different POs
             # 3) same product + different departments => same PO, multiple lines
             lines_by_po_key = defaultdict(list)
-            for line in request.product_line_ids.filtered(lambda l: not l.manager_refused and l.status != 'refused'):
+            for line in request.product_line_ids.filtered(lambda l: not l.manager_refused and l.status != 'refused' and not l.is_available_in_inventory):
                 qty_for_seller = self._line_qty(line) or 1.0
                 seller = line.seller_id or line.product_id.with_company(line.company_id)._select_seller(
                     quantity=qty_for_seller,
@@ -223,10 +288,14 @@ class ApprovalForm(models.Model):
                     for line, _seller in dept_lines:
                         line.purchase_order_line_id = po_line.id
 
-        if not created_po_count:
+            created_transfer_count += self._create_internal_transfers_for_request(request)
+            # raise UserError(str(created_transfer_count))
+        if not created_po_count and not created_transfer_count:
             raise UserError(
-                "No Purchase Order was created. Please ensure approved lines have a vendor and non-zero quantity."
-            )
+                    "No internal transfer or purchase order was created. "
+                    "Please ensure approved lines have a department, valid quantity, stock availability, "
+                    "and a vendor for items that must be purchased."
+                )
         return True
 
 
@@ -290,6 +359,39 @@ class ApprovalForm(models.Model):
                         partner_ids=[user.partner_id.id],
                         subtype_xmlid="mail.mt_comment",
                     )
+
+    def _send_po_approval_email_to_scm(self):
+        scm_group = self.env.ref('purchase_inherit.group_scm_user')
+        scm_users = scm_group.user_ids.filtered(lambda user: user.partner_id.email)
+        if not scm_users:
+            return
+
+        for request in self:
+            purchase_orders = request.product_line_ids.mapped('purchase_order_line_id.order_id')
+            for purchase_order in purchase_orders:
+                subject = _("Purchase Order %s Sent for Approval") % purchase_order.name
+                body = _(
+                    "Purchase Order %(po_name)s has been sent to you for approval from Approval Request %(request_name)s."
+                ) % {
+                    'po_name': purchase_order.name,
+                    'request_name': request.name,
+                }
+                purchase_order.message_post(
+                    body=body,
+                    partner_ids=scm_users.mapped('partner_id').ids,
+                    subtype_xmlid="mail.mt_comment",
+                )
+                mail_values = []
+                for user in scm_users:
+                    mail_values.append({
+                        'subject': subject,
+                        'body_html': "<p>%s</p>" % html_escape(body),
+                        'email_to': user.partner_id.email,
+                        'recipient_ids': [(4, user.partner_id.id)],
+                        'auto_delete': True,
+                    })
+                if mail_values:
+                    self.env['mail.mail'].sudo().create(mail_values)
     
     def _mark_scm_activities_done(self):
         scm_group = self.env.ref('purchase_inherit.group_scm_user')

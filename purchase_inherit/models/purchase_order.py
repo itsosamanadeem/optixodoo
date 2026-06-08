@@ -188,13 +188,13 @@ class PurchaseOrder(models.Model):
                         "Please set an analytic account for department '%s'."
                     ) % (line.department_id.name or 'Unknown'))
                 
-                if not line.department_id.analytic_gl_id:
+                if not line.product_id.analytic_gl_id:
                     raise UserError(_(
                         "Please set analytic GL for this product '%s'."
-                    )% (line.department_id.analytic_gl_id))
+                    )% (line.product_id.analytic_gl_id))
                 ac = self.env['budget.line'].sudo().search([
                     ('account_id', '=', line.department_id.analytic_account_id.id),
-                    ('x_plan8_id','=',line.department_id.analytic_gl_id.id),
+                    ('x_plan8_id','=',line.product_id.analytic_gl_id.id),
                     ('budget_analytic_id.state','=','confirmed')
                 ], limit=1)
                 # raise UserError(str(ac))

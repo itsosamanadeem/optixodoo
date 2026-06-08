@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 520" role="img" aria-labelledby="title desc">
+  <title id="title">Purchase Control Hub workflow</title>
+  <desc id="desc">Workflow from purchase request to purchase order approval and stock serial import.</desc>
+  <rect width="1280" height="520" fill="#f5f8fb"/>
+  <text x="80" y="90" fill="#12344d" font-family="Arial, sans-serif" font-size="34" font-weight="700">Procurement Workflow Overview</text>
+
+  <rect x="80" y="170" width="210" height="120" rx="20" fill="#ffffff" stroke="#cfd9e3"/>
+  <rect x="325" y="170" width="210" height="120" rx="20" fill="#ffffff" stroke="#cfd9e3"/>
+  <rect x="570" y="170" width="210" height="120" rx="20" fill="#ffffff" stroke="#cfd9e3"/>
+  <rect x="815" y="170" width="210" height="120" rx="20" fill="#ffffff" stroke="#cfd9e3"/>
+  <rect x="1060" y="170" width="140" height="120" rx="20" fill="#ffffff" stroke="#cfd9e3"/>
+
+  <text x="114" y="220" fill="#0f172a" font-family="Arial, sans-serif" font-size="24" font-weight="700">Purchase Request</text>
+  <text x="108" y="252" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">Department lines</text>
+  <text x="123" y="277" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">Analytic autofill</text>
+
+  <text x="372" y="220" fill="#0f172a" font-family="Arial, sans-serif" font-size="24" font-weight="700">Manager Review</text>
+  <text x="356" y="252" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">Parallel approvers</text>
+  <text x="367" y="277" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">Partial refusal</text>
+
+  <text x="623" y="220" fill="#0f172a" font-family="Arial, sans-serif" font-size="24" font-weight="700">Create RFQ / PO</text>
+  <text x="603" y="252" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">Grouped by vendor</text>
+  <text x="595" y="277" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">and product logic</text>
+
+  <text x="852" y="220" fill="#0f172a" font-family="Arial, sans-serif" font-size="24" font-weight="700">Budget Check</text>
+  <text x="847" y="252" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">Restrict / warning</text>
+  <text x="857" y="277" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">by department</text>
+
+  <text x="1083" y="220" fill="#0f172a" font-family="Arial, sans-serif" font-size="24" font-weight="700">Receipt</text>
+  <text x="1084" y="252" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">XLSX serials</text>
+  <text x="1086" y="277" fill="#4b5563" font-family="Arial, sans-serif" font-size="17">asset tags</text>
+
+  <path d="M292 230 H323" stroke="#14866d" stroke-width="8" stroke-linecap="round"/>
+  <path d="M537 230 H568" stroke="#14866d" stroke-width="8" stroke-linecap="round"/>
+  <path d="M782 230 H813" stroke="#14866d" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1027 230 H1058" stroke="#14866d" stroke-width="8" stroke-linecap="round"/>
+  <path d="M316 215 L338 230 L316 245" fill="none" stroke="#14866d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M561 215 L583 230 L561 245" fill="none" stroke="#14866d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M806 215 L828 230 L806 245" fill="none" stroke="#14866d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M1051 215 L1073 230 L1051 245" fill="none" stroke="#14866d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

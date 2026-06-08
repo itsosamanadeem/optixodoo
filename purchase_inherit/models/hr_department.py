@@ -11,16 +11,15 @@ class HrDepartment(models.Model):
         domain=[("plan_id.name", "ilike", "Cost Center")],
     )
     
-    analytic_gl_id = fields.Many2one(
-        "account.analytic.account",
-        string="GL",
-        help="Analytic account used as the GL account.",
-        domain=[("plan_id.name", "ilike", "GL")],
-    )
-    
     analytic_city_id = fields.Many2one(
         "account.analytic.account",
         string="City",
         help="Analytic city used as the department city center.",
         domain=[("plan_id.name", "ilike", "City")],
+    )
+    
+    location_id = fields.Many2one(
+        "stock.location",
+        string="Department Location",
+        help="Stock location associated with this department for internal transfers.",
     )
