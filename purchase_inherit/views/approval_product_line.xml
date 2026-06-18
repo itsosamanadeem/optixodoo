@@ -4,8 +4,12 @@
         <field name="model">approval.request</field>
         <field name="inherit_id" ref="approvals.approval_request_view_form"/>
         <field name="arch" type="xml">
+            <xpath expr="/form//field[@name='request_status']" position="after">
+                <button string="Create IR" type="object" name="create_internal_transfers_for_request" invisible="approval_type != 'purchase' or request_status not in ['approved', 'partial_approved'] or request_type != 'ir'"/>
+            </xpath>
             <xpath expr="/form//button[@name='action_create_purchase_orders']" position="attributes">
                 <attribute name="groups">approvals.group_approval_user</attribute>
+                <attribute name="invisible">request_type != 'pr'</attribute>
             </xpath>
             <xpath expr="/form//button[@name='action_open_purchase_orders']" position="attributes">
                 <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user,purchase.group_purchase_user,purchase.group_purchase_manager</attribute>
@@ -20,11 +24,14 @@
                 <attribute name="force_save">1</attribute>
                 <attribute name="readonly">True</attribute>
             </xpath>
+            <xpath expr="/form//field[@name='amount']" position="after">
+                <field name="request_type"/>
+            </xpath>
             <xpath expr="/form//field[@name='product_line_ids']" position="inside">
                 <list editable="bottom" string="Products" decoration-danger="has_no_seller">
                     <field name="company_id" column_invisible="True"/>
                     <field name="product_id" required="parent.approval_type != 'purchase' and parent.has_product == 'required'" context="{'search_default_filter_to_purchase': 1}"/>
-                    <field name="inventory_status" readonly="True" widget="badge" decoration-info="inventory_status == 'available'" decoration-warning="inventory_status == 'not_available'" decoration-success="inventory_status == 'service'" no-label="1"/>
+                    <field name="inventory_status" readonly="True" widget="badge" decoration-info="inventory_status == 'available'" decoration-warning="inventory_status == 'not_available'" decoration-success="inventory_status == 'service'" no-label="1" column_invisible="True"/>
                     <field optional="show" name="department_id"/>
                     <field name="department_analytic_account_id" column_invisible="1"/>
                     <field name="department_analytic_city_id" column_invisible="1"/>
@@ -41,13 +48,32 @@
             <xpath expr="/form//button[@name='action_create_purchase_orders']" position="attributes">
                 <attribute name="groups"/>
                 <attribute name="string">Purchase Request</attribute>
-                <attribute name="invisible">approval_type != 'purchase' or request_status not in ('approved', 'partial_approved')</attribute>
+                <attribute name="invisible">approval_type != "purchase" or request_status not in ["approved", "partial_approved"] or request_type != "pr"</attribute>
             </xpath>
             <xpath expr="/form/header/field[@name='request_status']" position="attributes">
                 <attribute name="statusbar_visible">new,pending,approved,partial_approved,refused,cancel</attribute>
             </xpath>
             <xpath expr="/form//button[@name='action_draft']" position="attributes">
                 <attribute name="invisible">request_status != "cancel"</attribute>
+            </xpath>
+            <xpath expr="/form//button[@name='create_internal_transfers_for_request']" position="attributes">
+                <attribute name="class">btn-primary</attribute>
+            </xpath>
+            <xpath expr="/form//field[@name='request_type']" position="attributes">
+                <attribute name="force_save">1</attribute>
+                <attribute name="readonly">request_status in ["pending", "approved", "partial_approved", "refused", "cancel"]</attribute>
+            </xpath>
+            <xpath expr="/form//button[@name='action_refuse']" position="attributes">
+                <attribute name="invisible">request_status in ["approved", "refused", "cancel", "partial_approved", "purchase_order_created", "internal_transfer_created"] or user_status != "pending"</attribute>
+            </xpath>
+            <xpath expr="/form//button[@name='action_draft']" position="attributes">
+                <attribute name="invisible">request_status in ["pending", "approved", "partial_approved", "purchase_order_created", "internal_transfer_created"]</attribute>
+            </xpath>
+            <xpath expr="/form//button[@name='action_cancel']" position="attributes">
+                <attribute name="invisible">request_status in ["new", "cancel", "internal_transfer_created", "purchase_order_created"] or request_owner_id != uid</attribute>
+            </xpath>
+            <xpath expr="/form//field[@name='request_type']" position="attributes">
+                <attribute name="readonly">request_status in ["pending", "approved", "partial_approved", "refused", "cancel", "purchase_order_created", "internal_transfer_created"]</attribute>
             </xpath>
         </field>
     </record>

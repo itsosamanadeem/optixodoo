@@ -21,5 +21,5 @@ class HrDepartment(models.Model):
     location_id = fields.Many2one(
         "stock.location",
         string="Department Location",
-        help="Stock location associated with this department for internal transfers.",
+        help="Optional stock location associated with this department.",
     )
