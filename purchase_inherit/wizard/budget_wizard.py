@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields #type: ignore
 
 class BudgetWarningWizard(models.TransientModel):
     _name = 'budget.warning.wizard'
@@ -11,7 +11,9 @@ class BudgetWarningWizard(models.TransientModel):
         self.ensure_one()
         order = self.order_id.with_context(skip_budget_check=True)
         
-        order.button_approve()
+        # order.button_approve()
+        order.action_request_approval()
+        # order.state = 'to approve'
         order.is_sent_back = False
         return {'type': 'ir.actions.act_window_close'}
 

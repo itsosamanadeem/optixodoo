@@ -1,5 +1,5 @@
 from . import purchase_order
-from . import approval_product_line, approval_request
+from . import approval_product_line, approval_request, approval_approver
 from . import hr_department
 from . import buget_analytic 
 from . import purchase_order_line 

@@ -42,7 +42,7 @@
                     <field name="price_unit" optional="show" readonly="not is_service_product"/>
                     <field name="quantity" column_invisible="parent.has_quantity == 'no'" required="parent.has_quantity == 'required' and parent.request_status != 'new'"/>
                     <field name="product_uom_id" groups="uom.group_uom" widget="many2one_uom" options="{'no_create': True, 'no_open': True}"/>
-                    <field name="seller_id" column_invisible="True" required="False"/>
+                    <field name="seller_id" required="False"/>
                 </list>
             </xpath>
             <xpath expr="/form//button[@name='action_create_purchase_orders']" position="attributes">
@@ -74,6 +74,12 @@
             </xpath>
             <xpath expr="/form//field[@name='request_type']" position="attributes">
                 <attribute name="readonly">request_status in ["pending", "approved", "partial_approved", "refused", "cancel", "purchase_order_created", "internal_transfer_created"]</attribute>
+            </xpath>
+            <xpath expr="/form/header/button[@name='action_confirm']" position="attributes">
+                <attribute name="invisible">request_status != "new"</attribute>
+            </xpath>
+            <xpath expr="/form//field[@name='reason']" position="attributes">
+                <attribute name="required">request_type == "pc"</attribute>
             </xpath>
         </field>
     </record>

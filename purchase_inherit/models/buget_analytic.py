@@ -7,7 +7,7 @@ class BudgetAnalytics(models.Model):
         ('restrict','Restrict'),
         ('allow','Allow'),
         ('warning','Show only warning'),
-    ],string="Configuration", required=True)
+    ],string="Configuration", required=True, default='warning',)
     
 
 class BudgetLine(models.Model):

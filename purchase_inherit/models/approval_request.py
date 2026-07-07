@@ -13,7 +13,8 @@ class ApprovalForm(models.Model):
     amount = fields.Float( string="Amount",compute="_compute_amount",readonly=True, store=True)
     request_type = fields.Selection([
         ('pr', 'Purchase Request'),
-        ('ir', 'Internal Transfer Request'),
+        ('ir', 'Internal Request'),
+        ('pc', 'Petty Cash'),
         ], default='pr', required=True, index=True)
     
     request_status = fields.Selection([
@@ -32,6 +33,20 @@ class ApprovalForm(models.Model):
     @staticmethod
     def _line_qty(line):
         return line.po_uom_qty or line.quantity or 0.0
+
+    def _get_current_user_approver(self):
+        approvers = self.env['approval.approver']
+        status_priority = ('pending', 'waiting', 'new', 'approved', 'refused', 'cancel')
+        for request in self:
+            user_approvers = request.approver_ids.filtered(
+                lambda approver: approver.user_id == self.env.user
+            )
+            for status in status_priority:
+                approver = user_approvers.filtered(lambda line: line.status == status)[:1]
+                if approver:
+                    approvers |= approver
+                    break
+        return approvers
 
     def create_internal_transfers_for_request(self):
         stock_picking = self.env['stock.picking'].sudo()
@@ -123,6 +138,7 @@ class ApprovalForm(models.Model):
         for request in self:
             departments = request.product_line_ids.mapped('department_id')
             approvers_to_add = []
+            existing_approver_user_ids = set(request.approver_ids.mapped('user_id').ids)
             for department in departments:
                 if not department:
                     continue
@@ -154,8 +170,9 @@ class ApprovalForm(models.Model):
                             )
                         }
                     }
-                if manager_user.id not in request.approver_ids.mapped('user_id').ids:
+                if manager_user.id not in existing_approver_user_ids:
                     approvers_to_add.append(manager_user.id)
+                    existing_approver_user_ids.add(manager_user.id)
             if approvers_to_add:
                 existing_sequences = request.approver_ids.mapped('sequence')
                 next_sequence = max(existing_sequences, default=0) + 1
@@ -177,7 +194,9 @@ class ApprovalForm(models.Model):
     def action_create_purchase_orders(self):
         sudo_self = self.sudo()
         res = super(ApprovalForm, sudo_self).action_create_purchase_orders()
-        self.request_status = 'purchase_order_created'
+        self.sudo().write({
+            'request_status': 'purchase_order_created'
+            })
         sudo_self._create_activity()
         sudo_self._send_po_approval_email_to_scm()
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
@@ -188,20 +207,20 @@ class ApprovalForm(models.Model):
 
     def action_draft(self):
         for request in self:
-            owner_user = False
-            if 'request_owner_id' in request._fields:
-                owner_user = request.request_owner_id
-            elif 'owner_id' in request._fields:
-                owner_user = request.owner_id
-            if not owner_user:
-                owner_user = request.create_uid
+            # owner_user = False
+            # if 'request_owner_id' in request._fields:
+            #     owner_user = request.request_owner_id
+            # elif 'owner_id' in request._fields:
+            #     owner_user = request.owner_id
+            # if not owner_user:
+            #     owner_user = request.create_uid
 
-            if (
-                owner_user
-                and owner_user != self.env.user
-                and not self.env.user.has_group('approvals.group_approval_manager')
-            ):
-                raise UserError(_("Only the requester or an Approval Manager can reset to draft this request."))
+            # if (
+            #     owner_user
+            #     and owner_user != self.env.user
+            #     and not self.env.user.has_group('approvals.group_approval_manager')
+            # ):
+            #     raise UserError(_("Only the requester or an Approval Manager can reset to draft this request."))
             request.product_line_ids.sudo().write({
                 'manager_refused': False,
                 'manager_refused_by_id': False,
@@ -211,32 +230,41 @@ class ApprovalForm(models.Model):
             request._compute_amount()
         return super(ApprovalForm, self.sudo()).action_draft()
     
-    def action_cancel(self):
-        for request in self:
-            owner_user = False
-            if 'request_owner_id' in request._fields:
-                owner_user = request.request_owner_id
-            elif 'owner_id' in request._fields:
-                owner_user = request.owner_id
-            if not owner_user:
-                owner_user = request.create_uid
+    # def action_cancel(self):
+    #     # for request in self:
+    #     #     owner_user = False
+    #     #     if 'request_owner_id' in request._fields:
+    #     #         owner_user = request.request_owner_id
+    #     #     elif 'owner_id' in request._fields:
+    #     #         owner_user = request.owner_id
+    #     #     if not owner_user:
+    #     #         owner_user = request.create_uid
 
-            if (
-                owner_user
-                and owner_user != self.env.user
-                and not self.env.user.has_group('approvals.group_approval_manager')
-            ):
-                raise UserError(_("Only the requester or an Approval Manager can cancel this request."))
+    #     #     if (
+    #     #         owner_user
+    #     #         and owner_user != self.env.user
+    #     #         and not self.env.user.has_group('approvals.group_approval_manager')
+    #     #     ):
+    #     #         raise UserError(_("Only the requester or an Approval Manager can cancel this request."))
 
-        return super(ApprovalForm, self.sudo()).action_cancel()
+    #     return super(ApprovalForm, self.sudo()).action_cancel()
     
     def action_approve(self, approver=None):
+        if not isinstance(approver, models.BaseModel):
+            approver = self._get_current_user_approver()
         res = super().action_approve(approver=approver)
         for request in self:
             if request.product_line_ids.filtered(lambda l: l.manager_refused):
                 # If any line is refused by a manager, the request cannot be fully approved.
                 request.write({'request_status': 'partial_approved'})
         return res
+
+    @api.depends_context('uid')
+    @api.depends('approver_ids.status')
+    def _compute_user_status(self):
+        for approval in self:
+            approver = approval._get_current_user_approver()
+            approval.user_status = approver.status if approver else False
     
     def _create_purchase_orders(self):
         sudo_self = self.sudo()
@@ -245,13 +273,12 @@ class ApprovalForm(models.Model):
         po_model = self.env['purchase.order'].sudo()
         po_line_model = self.env['purchase.order.line'].sudo()
         created_po_count = 0
-        created_inventory_out_count = 0
 
         for request in sudo_self:
             # RFQ grouping rule requested:
-            # 1) same product + same department => merge in one PO line (sum qty)
-            # 2) different products (even same department) => different POs
-            # 3) same product + different departments => same PO, multiple lines
+            # 1) different products (even same department) => different POs
+            # 2) same product + different departments => same PO, separate lines
+            # 3) approval product lines stay separate on the PO
             lines_by_po_key = defaultdict(list)
             for line in request.product_line_ids.filtered(lambda l: not l.manager_refused and l.status != 'refused'):
                 qty_for_seller = self._line_qty(line) or 1.0
@@ -268,34 +295,29 @@ class ApprovalForm(models.Model):
             for _, packed_lines in lines_by_po_key.items():
                 first_line, _, first_vendor = packed_lines[0]
                 po_vals = first_line._get_purchase_order_values(first_vendor)
+                po_vals['reason'] = request.reason
                 purchase_order = po_model.create(po_vals)
+                request._copy_attachments_to_purchase_order(purchase_order)
                 created_po_count += 1
-                lines_by_department = defaultdict(list)
+
                 for line, seller, _vendor in packed_lines:
-                    lines_by_department[line.department_id.id].append((line, seller))
-
-                for department_id, dept_lines in lines_by_department.items():
-                    base_line, base_seller = dept_lines[0]
-                    total_po_uom_qty = sum((self._line_qty(l) or 0.0) for l, _s in dept_lines)
-                    total_amount = sum(((l.price_unit or 0.0) * (self._line_qty(l) or 0.0)) for l, _s in dept_lines)
-                    unit_price = (total_amount / total_po_uom_qty) if total_po_uom_qty else (base_line.price_unit or 0.0)
-
+                    po_uom_qty = self._line_qty(line) or 0.0
                     po_line_vals = po_line_model._prepare_purchase_order_line(
-                        base_line.product_id,
-                        total_po_uom_qty,
-                        base_seller.product_uom_id,
-                        base_line.company_id,
+                        line.product_id,
+                        po_uom_qty,
+                        seller.product_uom_id,
+                        line.company_id,
                         first_vendor,
                         purchase_order,
                     )
                     po_line = po_line_model.create(po_line_vals)
                     po_line.write({
-                        'department_id': department_id,
-                        'analytic_distribution': base_line.analytic_distribution,
-                        'price_unit': unit_price,
+                        'department_id': line.department_id.id,
+                        'analytic_distribution': line.analytic_distribution,
+                        'price_unit': line.price_unit or 0.0,
                     })
-                    for line, _seller in dept_lines:
-                        line.purchase_order_line_id = po_line.id
+                    line.purchase_order_line_id = po_line.id
+                    
         if not created_po_count:
             raise UserError(
                     "No inventory out or purchase order was created. "
@@ -310,6 +332,8 @@ class ApprovalForm(models.Model):
         Department manager refusal only affects that manager's department lines.
         The whole request is refused only if all lines end up refused.
         """
+        if not isinstance(approver, models.BaseModel):
+            approver = self._get_current_user_approver()
         fully_refused_requests = self.env['approval.request']
         for request in self:
             if request.env.user in request.approver_ids.mapped('user_id'):
@@ -323,10 +347,13 @@ class ApprovalForm(models.Model):
                         'manager_refused_by_id': request.env.user.id,
                         'manager_refused_date': fields.Datetime.now(),
                     })
-                approver_line = self.env['approval.approver'].sudo().search([
-                    ('user_id', '=', request.env.user.id),
-                    ('request_id', '=', request.id)
-                ], limit=1)
+                approver_line = request.approver_ids & approver
+                if not approver_line:
+                    approver_line = self.env['approval.approver'].sudo().search([
+                        ('user_id', '=', request.env.user.id),
+                        ('request_id', '=', request.id)
+                    ], limit=1)
+                approver_line = approver_line[:1]
                 remaining_lines = request.product_line_ids.filtered(lambda l: not l.manager_refused and l.status != 'refused')
                 if not remaining_lines:
                     if approver_line:
@@ -341,6 +368,11 @@ class ApprovalForm(models.Model):
         if fully_refused_requests:
             return super(ApprovalForm, fully_refused_requests).action_refuse(approver=approver)
         return True
+
+    def action_withdraw(self, approver=None):
+        if not isinstance(approver, models.BaseModel):
+            approver = self._get_current_user_approver()
+        return super().action_withdraw(approver=approver)
     
     def _create_activity(self):        
         scm_group = self.env.ref('purchase_inherit.group_scm_user')
@@ -429,3 +461,40 @@ class ApprovalForm(models.Model):
             ))
 
         return super().unlink()
+
+    def _copy_attachments_to_purchase_order(self, purchase_order):
+        self.ensure_one()
+
+        attachment_model = self.env['ir.attachment'].sudo()
+
+        source_attachments = attachment_model.search([
+            ('res_model', '=', 'approval.request'),
+            ('res_id', '=', self.id),
+        ])
+
+        # Also include files attached through chatter messages, if any.
+        source_attachments |= self.message_ids.mapped('attachment_ids').sudo()
+
+        if not source_attachments:
+            return
+
+        existing_attachments = attachment_model.search([
+            ('res_model', '=', 'purchase.order'),
+            ('res_id', '=', purchase_order.id),
+        ])
+
+        for attachment in source_attachments:
+            already_copied = existing_attachments.filtered(
+                lambda existing: (
+                    existing.name == attachment.name
+                    and existing.checksum == attachment.checksum
+                )
+            )
+            if already_copied:
+                continue
+
+            attachment.copy({
+                'res_model': 'purchase.order',
+                'res_id': purchase_order.id,
+                'res_field': False,
+            })

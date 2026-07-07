@@ -7,6 +7,14 @@ class PurchaseOrder(models.Model):
     _name="purchase.order"
     _inherit = ["purchase.order",'mail.thread', 'mail.activity.mixin']
 
+    state = fields.Selection([
+        ('draft', 'RFQ'),
+        ('sent', 'RFQ Sent'),
+        ('to approve', 'To Approve'),
+        ('purchase', 'Purchase Order'),
+        ('cancel', 'Cancelled')
+    ], string='Status', readonly=True, index=True, copy=False, default='draft', tracking=True)
+        # ('pr return', 'PR Returned'), 
     department_id = fields.Many2one(
         'hr.department',
         string="Department",
@@ -37,6 +45,9 @@ class PurchaseOrder(models.Model):
         compute="_compute_can_upload_bill",
     )
 
+    reason = fields.Html(
+        string="Reason"
+    )
     @api.depends('order_line.qty_received')
     def _compute_can_upload_bill(self):
         for order in self:
@@ -161,26 +172,6 @@ class PurchaseOrder(models.Model):
         
     def button_confirm(self):
         for order in self:
-            ctx = dict(self.env.context)
-            if order.state == 'draft':
-                ctx.update({'skip_budget_check': True})
-            order = order.with_context(ctx)
-            if not order.order_line:
-                raise UserError(_("Please add at least one line to confirm the purchase order."))
-            order.is_sent_back = False
-            order.button_lock()
-        return super(PurchaseOrder, self.with_context(ctx)).button_confirm() #type:ignore
-    
-    def button_approve(self):
-        
-        if self.env.context.get('skip_budget_check'):
-            return super().button_approve()
-        
-        for order in self:
-            if (order.is_sent_back and order.department_manager_ids and order.order_line.filtered(lambda l: l.amount_to_change)):
-                if set(order.department_manager_ids.ids) != set(order.department_manager_approved_ids.ids):
-                    raise UserError(_("All department managers must approve first."))
-                
             # budget logic per line
             for line in order.order_line:
                 if not line.department_id or not line.department_id.analytic_city_id:
@@ -192,12 +183,20 @@ class PurchaseOrder(models.Model):
                     raise UserError(_(
                         "Please set analytic GL for this product '%s'."
                     )% (line.product_id.analytic_gl_id))
+                
+                # lines = self.env['budget.line'].sudo().search([
+                #     ('account_id', '=', line.department_id.analytic_account_id.id),
+                #     ('x_plan6_id', '=', line.department_id.analytic_city_id.id),
+                # ])
+
+                # raise UserError(lines.mapped('x_plan8_id').name)
                 ac = self.env['budget.line'].sudo().search([
-                    ('account_id', '=', line.department_id.analytic_account_id.id),
+                    ('account_id','=',line.department_id.analytic_account_id.id),
+                    ('x_plan6_id','=',line.department_id.analytic_city_id.id),
                     ('x_plan8_id','=',line.product_id.analytic_gl_id.id),
                     ('budget_analytic_id.state','=','confirmed')
                 ], limit=1)
-                # raise UserError(str(ac))
+                raise UserError(str(ac))
                 if not ac or not ac.budget_analytic_id:
                     raise UserError(_("No budget configuration found for the analytic account '%s'.") % line.department_id.analytic_account_id.name)
                 configuration = ac.budget_analytic_id.sudo().configuration
@@ -231,6 +230,62 @@ class PurchaseOrder(models.Model):
                         }
                 elif configuration == 'allow':
                     continue
-            
+                
+            ctx = dict(self.env.context)
+            if order.state == 'draft':
+                ctx.update({'skip_budget_check': True})
+            order = order.with_context(ctx)
+            if not order.order_line:
+                raise UserError(_("Please add at least one line to confirm the purchase order."))
+            order.is_sent_back = False
+            order.button_lock()
+        return super(PurchaseOrder, self.with_context(ctx)).button_confirm() #type:ignore
+    
+    def button_approve(self):
+        if self.env.context.get('skip_budget_check'):
+            return super().button_approve()
+        
+        for order in self:
+            if (order.is_sent_back and order.department_manager_ids and order.order_line.filtered(lambda l: l.amount_to_change)):
+                if set(order.department_manager_ids.ids) != set(order.department_manager_approved_ids.ids):
+                    raise UserError(_("All department managers must approve first."))
             order.is_sent_back = False    
         return super().button_approve()
+
+    def action_return_to_pr(self):
+        self.ensure_one()
+        
+        for record in self:
+            record.message_post(
+                body=f"PR {record.origin} is been returned back to the department manager for changes {record.name} is set to cancel state",
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
+            record.button_cancel()
+        
+        if self.origin:
+            approval_req = self.env['approval.request'].sudo().search([('name','=',self.origin)], limit=1)
+            if not approval_req:
+                raise UserError(
+                    f"No Source(PR) is found with reference {self.origin} for Purchase Order {self.name}."
+                )
+            approval_req.action_withdraw()
+            approval_req.action_cancel()
+            approval_req.action_draft()
+        else:
+            raise UserError(f"No Source(PR) is found on this Purchase Order \n this Purchase Order {self.name} must be created without Purchase Request module directly from Purchase Order module.")
+        
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+        model_id = self.env['ir.model']._get('approval.request').id
+        owner_user = approval_req.create_uid
+        if 'request_owner_id' in approval_req._fields and approval_req.request_owner_id:
+            owner_user = approval_req.request_owner_id
+        self.env['mail.activity'].sudo().create({
+            'activity_type_id': activity_type.id,
+            'summary': 'Purchase Request Returned',
+            'note': f'PR {self.origin} requires your review again',
+            'user_id': owner_user.id,
+            'res_id': approval_req.id,
+            'res_model_id': model_id,
+        })
+        
