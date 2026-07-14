@@ -289,7 +289,7 @@ class ApprovalForm(models.Model):
                 if not seller:
                     continue
                 vendor = seller.partner_id
-                po_key = (vendor.id, line.company_id.id, line.product_id.id)
+                po_key = (vendor.id, line.company_id.id, line.department_id.id)
                 lines_by_po_key[po_key].append((line, seller, vendor))
 
             for _, packed_lines in lines_by_po_key.items():

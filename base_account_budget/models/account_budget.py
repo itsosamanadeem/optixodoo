@@ -81,6 +81,20 @@ class Budget(models.Model):
     def action_budget_done(self):
         self.write({'state': 'done'})
 
+    def action_open_budget_line_filter(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Filter Budget Lines'),
+            'res_model': 'budget.line.filter.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_budget_id': self.id,
+                'default_company_id': self.company_id.id,
+            },
+        }
+
 
 class BudgetLines(models.Model):
     _name = "budget.lines"
@@ -200,4 +214,3 @@ class BudgetLines(models.Model):
                 percentage = 0.0
 
             line.percentage = max(0.0, min(100.0, percentage))
-

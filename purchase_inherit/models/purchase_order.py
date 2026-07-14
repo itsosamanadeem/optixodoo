@@ -40,21 +40,21 @@ class PurchaseOrder(models.Model):
         copy=False,
         readonly=True
     )
-    can_upload_bill = fields.Boolean(
-        string="Can Upload Bill",
-        compute="_compute_can_upload_bill",
-    )
+    # can_upload_bill = fields.Boolean(
+    #     string="Can Upload Bill",
+    #     compute="_compute_can_upload_bill",
+    # )
 
     reason = fields.Html(
         string="Reason"
     )
-    @api.depends('order_line.qty_received')
-    def _compute_can_upload_bill(self):
-        for order in self:
-            if order.product_id.type == 'service':
-                order.can_upload_bill = True
-            else:
-                order.can_upload_bill = any((line.qty_received or 0.0) > 0 for line in order.order_line)
+    # @api.depends('order_line.qty_received')
+    # def _compute_can_upload_bill(self):
+    #     for order in self:
+    #         if order.product_id.type == 'service':
+    #             order.can_upload_bill = True
+    #         else:
+    #             order.can_upload_bill = any((line.qty_received or 0.0) > 0 for line in order.order_line)
 
     def _get_department_managers(self):
         self.ensure_one()
@@ -196,7 +196,7 @@ class PurchaseOrder(models.Model):
                     ('x_plan8_id','=',line.product_id.analytic_gl_id.id),
                     ('budget_analytic_id.state','=','confirmed')
                 ], limit=1)
-                raise UserError(str(ac))
+                # raise UserError(str(ac))
                 if not ac or not ac.budget_analytic_id:
                     raise UserError(_("No budget configuration found for the analytic account '%s'.") % line.department_id.analytic_account_id.name)
                 configuration = ac.budget_analytic_id.sudo().configuration

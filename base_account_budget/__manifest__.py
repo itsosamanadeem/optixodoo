@@ -39,6 +39,7 @@
     'data': [
         'security/account_budget_security.xml',
         'security/ir.model.access.csv',
+        'wizard/budget_line_filter_wizard_views.xml',
         'views/account_analytic_account_views.xml',
         'views/account_budget_views.xml',
     ],

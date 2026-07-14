@@ -47,6 +47,7 @@
         "views/res_partner.xml",
         "views/account_tax.xml",
         "wizard/budget_wizard.xml",
+        "wizard/budget_line_filter_wizard.xml",
         "wizard/city_warning_wizard.xml",
         "wizard/stock_serial_import_wizard.xml",
         "wizard/account_payment_register_wizard.xml",

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_budget_line_filter_wizard_form" model="ir.ui.view">
+        <field name="name">budget.line.filter.wizard.form</field>
+        <field name="model">budget.line.filter.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Filter Budget Lines">
+                <group>
+                    <field name="budget_id"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </group>
+                <group>
+                    <group>
+                        <field name="general_budget_id"/>
+                        <field name="analytic_account_id"/>
+                        <field name="paid_date"/>
+                    </group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="planned_amount_operator"/>
+                        <field name="planned_amount"
+                               invisible="not planned_amount_operator"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Apply Filters"
+                            name="action_apply_filters"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel"
+                            special="cancel"
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

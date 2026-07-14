@@ -20,6 +20,7 @@
 #
 #############################################################################
 from . import models
+from . import wizard
 
 
 def enable_analytic_accounting(env):

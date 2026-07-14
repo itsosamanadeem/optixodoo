@@ -119,6 +119,11 @@
                     </group>
                     <notebook>
                         <page string="Budget Lines">
+                            <button name="action_open_budget_line_filter"
+                                    string="Filter Lines"
+                                    type="object"
+                                    class="btn-secondary"
+                                    invisible="not id"/>
                             <field name="budget_line"
                                    context="{'default_date_from': date_from,'default_date_to': date_to}"
                                    colspan="4"
@@ -288,7 +293,26 @@
         <field name="model">budget.lines</field>
         <field name="arch" type="xml">
             <search string="Budget Lines">
+                <field name="budget_id"/>
+                <field name="general_budget_id"/>
                 <field name="analytic_account_id"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="paid_date"/>
+                <filter string="Current Company"
+                        name="current_company"
+                        domain="[('company_id', '=', context.get('allowed_company_ids') and context.get('allowed_company_ids')[0])]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Budget"
+                            name="group_budget"
+                            context="{'group_by': 'budget_id'}"/>
+                    <filter string="Budgetary Position"
+                            name="group_budgetary_position"
+                            context="{'group_by': 'general_budget_id'}"/>
+                    <filter string="Analytic Account"
+                            name="group_analytic_account"
+                            context="{'group_by': 'analytic_account_id'}"/>
+                </group>
             </search>
         </field>
     </record>

@@ -21,7 +21,7 @@
             </xpath>
             <xpath expr="/form//widget[@name='purchase_file_uploader']" position="attributes">
                 <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
-                <attribute name="invisible">not can_upload_bill</attribute>
+                <!-- <attribute name="invisible">not can_upload_bill</attribute> -->
             </xpath>
             <xpath expr="/form/header/button[@name='action_rfq_send']" position="attributes">
                 <attribute name="groups">purchase_inherit.group_ceo,purchase_inherit.group_scm,purchase_inherit.group_scm_user</attribute>
