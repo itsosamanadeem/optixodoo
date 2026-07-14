@@ -14,8 +14,10 @@ jobs:
           echo "Pulling Changes...."
           REPO_URL=git@github.com:itsosamanadeem/optixodoo.git
           cd ~/odoo19/custom-addons
-          git fetch origin
-          git checkout staging || git checkout -b staging
+          git fetch origin staging
+          git reset --hard
+          git clean -fd
+          git switch -C staging origin/staging
           git reset --hard origin/staging
 
       - name: Restart Docker container odoo19-web-1
