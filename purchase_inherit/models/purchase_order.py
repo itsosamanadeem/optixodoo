@@ -40,10 +40,10 @@ class PurchaseOrder(models.Model):
         copy=False,
         readonly=True
     )
-    # can_upload_bill = fields.Boolean(
-    #     string="Can Upload Bill",
-    #     compute="_compute_can_upload_bill",
-    # )
+    can_upload_bill = fields.Boolean(
+        string="Can Upload Bill",
+        # compute="_compute_can_upload_bill",
+    )
 
     reason = fields.Html(
         string="Reason"
