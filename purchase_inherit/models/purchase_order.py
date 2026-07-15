@@ -42,12 +42,49 @@ class PurchaseOrder(models.Model):
     )
     can_upload_bill = fields.Boolean(
         string="Can Upload Bill",
+        default=True,
         # compute="_compute_can_upload_bill",
     )
 
     reason = fields.Html(
         string="Reason"
     )
+    
+    approval_request_id = fields.Many2one(
+        comodel_name="approval.request",
+        string="Approval Request",
+        readonly=True,
+        copy=False,
+        index=True,
+    )
+
+    approval_request_count = fields.Integer(
+        string="Approval Request Count",
+        compute="_compute_approval_request_count",
+    )
+
+    def _compute_approval_request_count(self):
+        for order in self:
+            order.approval_request_count = (
+                1 if order.approval_request_id else 0
+            )
+
+    def action_view_approval_request(self):
+        self.ensure_one()
+
+        if not self.approval_request_id:
+            raise UserError(
+                _("No Approval Request is linked to this Purchase Order.")
+            )
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Approval Request"),
+            "res_model": "approval.request",
+            "view_mode": "form",
+            "res_id": self.approval_request_id.id,
+            "target": "current",
+        }
     # @api.depends('order_line.qty_received')
     # def _compute_can_upload_bill(self):
     #     for order in self:

@@ -14,7 +14,6 @@ class ApprovalForm(models.Model):
     request_type = fields.Selection([
         ('pr', 'Purchase Request'),
         ('ir', 'Internal Request'),
-        ('pc', 'Petty Cash'),
         ], default='pr', required=True, index=True)
     
     request_status = fields.Selection([
