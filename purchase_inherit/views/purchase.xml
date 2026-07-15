@@ -4,6 +4,18 @@
         <field name="model">purchase.order</field>
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_approval_request"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-check-square-o"
+                        invisible="not approval_request_id">
+
+                    <field name="approval_request_count"
+                        widget="statinfo"
+                        string="Approval"/>
+                </button>
+            </xpath>
             <xpath expr="/form/header/field[@name='state']" position="after">
                 <button name="action_return_to_pr" string="Return PR" type="object" groups="purchase_inherit.group_scm_user"/>
             </xpath>

@@ -295,6 +295,7 @@ class ApprovalForm(models.Model):
                 first_line, _, first_vendor = packed_lines[0]
                 po_vals = first_line._get_purchase_order_values(first_vendor)
                 po_vals['reason'] = request.reason
+                po_vals['approval_request_id'] = request.id
                 purchase_order = po_model.create(po_vals)
                 request._copy_attachments_to_purchase_order(purchase_order)
                 created_po_count += 1
