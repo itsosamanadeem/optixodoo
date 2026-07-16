@@ -284,7 +284,7 @@ class ApprovalForm(models.Model):
                     and l.line_to_create
                     and not l.purchase_order_line_id
             )
-            raise UserError(str(lines_to_create))
+            # raise UserError(str(lines_to_create))
             for line in lines_to_create:
                 qty_for_seller = self._line_qty(line) or 1.0
                 seller = line.seller_id or line.product_id.with_company(line.company_id)._select_seller(
