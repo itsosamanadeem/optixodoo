@@ -196,7 +196,6 @@ class ApprovalForm(models.Model):
         self.sudo().write({
             'request_status': 'purchase_order_created'
             })
-        sudo_self._create_activity()
         sudo_self._send_po_approval_email_to_scm()
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
             for rec in self:
@@ -256,6 +255,7 @@ class ApprovalForm(models.Model):
             if request.product_line_ids.filtered(lambda l: l.manager_refused):
                 # If any line is refused by a manager, the request cannot be fully approved.
                 request.write({'request_status': 'partial_approved'})
+        self.sudo()._create_activity()
         return res
 
     @api.depends_context('uid')
@@ -284,7 +284,7 @@ class ApprovalForm(models.Model):
                     and l.line_to_create
                     and not l.purchase_order_line_id
             )
-            raise UserError(str(lines_to_create))
+            # raise UserError(str(lines_to_create))
             # raise UserError(str([
             #     (l.product_id.display_name, l.line_to_create, l.purchase_order_line_id.id)
             #     for l in request.product_line_ids

@@ -33,7 +33,7 @@
             <xpath expr="/form//field[@name='product_line_ids']" position="inside">
                 <list editable="bottom" string="Products" decoration-danger="has_no_seller">
                     <field name="company_id" column_invisible="True"/>
-                    <field name="line_to_create" no-label="True" readonly="False"/>
+                    <field name="line_to_create" no-label="True" readonly="False" column_invisible="True"/>
                     <field name="product_id" required="parent.approval_type != 'purchase' and parent.has_product == 'required'" context="{'search_default_filter_to_purchase': 1}" readonly="parent.request_status != 'new'"/>
                     <field name="inventory_status" readonly="True" widget="badge" decoration-info="inventory_status == 'available'" decoration-warning="inventory_status == 'not_available'" decoration-success="inventory_status == 'service'" no-label="1" column_invisible="True"/>
                     <field optional="show" name="department_id" readonly="parent.request_status != 'new'"/>
