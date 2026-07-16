@@ -77,6 +77,11 @@ class ApprovalProductLine(models.Model):
         store=True,
     )
 
+    line_to_create = fields.Boolean(
+        string="Create",
+        default=True
+    )
+    
     @api.depends('quantity', 'po_uom_qty')
     def _compute_requested_qty(self):
         for rec in self:
