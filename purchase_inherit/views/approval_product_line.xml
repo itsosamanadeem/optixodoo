@@ -4,6 +4,9 @@
         <field name="model">approval.request</field>
         <field name="inherit_id" ref="approvals.approval_request_view_form"/>
         <field name="arch" type="xml">
+            <xpath expr="/form//button[@name='action_create_purchase_orders']" position="attributes">
+                <attribute name="groups">purchase_inherit.group_scm_user,purchase_inherit.group_ceo</attribute>
+            </xpath>
             <xpath expr="/form//field[@name='request_status']" position="after">
                 <button string="Create IR" type="object" name="create_internal_transfers_for_request" invisible="approval_type != 'purchase' or request_status not in ['approved', 'partial_approved'] or request_type != 'ir'"/>
             </xpath>
