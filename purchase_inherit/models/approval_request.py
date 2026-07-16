@@ -301,9 +301,9 @@ class ApprovalForm(models.Model):
                 po_vals = first_line._get_purchase_order_values(first_vendor)
                 po_vals['reason'] = request.reason
                 po_vals['approval_request_id'] = request.id
+                raise UserError(str(packed_lines))
                 purchase_order = po_model.create(po_vals)
                 request._copy_attachments_to_purchase_order(purchase_order)
-                raise UserError(str(packed_lines))
 
                 for line, seller, _vendor in packed_lines:
                     po_uom_qty = self._line_qty(line) or 0.0
