@@ -197,9 +197,9 @@ class ApprovalForm(models.Model):
             'request_status': 'purchase_order_created'
             })
         sudo_self._send_po_approval_email_to_scm()
-        if self.env.user.has_group('purchase_inherit.group_scm_user'):
-            for rec in self:
-                rec._mark_scm_activities_done()
+        # if self.env.user.has_group('purchase_inherit.group_scm_user'):
+        #     for rec in self:
+        #         rec._mark_scm_activities_done()
                 
         return res
 
@@ -462,18 +462,18 @@ class ApprovalForm(models.Model):
                 if mail_values:
                     self.env['mail.mail'].sudo().create(mail_values)
     
-    def _mark_scm_activities_done(self):
-        scm_group = self.env.ref('purchase_inherit.group_scm_user')
-        scm_user_ids = scm_group.users.ids
+    # def _mark_scm_activities_done(self):
+    #     scm_group = self.env.ref('purchase_inherit.group_scm_user')
+    #     scm_user_ids = scm_group.users.ids
 
-        activities = self.env['mail.activity'].search([
-            ('res_model', '=', 'approval.request'),
-            ('res_id', '=', self.id),
-            ('user_id', 'in', scm_user_ids),
-            ('activity_type_id', '=', self.env.ref('mail.mail_activity_data_todo').id)
-        ])
+    #     activities = self.env['mail.activity'].search([
+    #         ('res_model', '=', 'approval.request'),
+    #         ('res_id', '=', self.id),
+    #         ('user_id', 'in', scm_user_ids),
+    #         ('activity_type_id', '=', self.env.ref('mail.mail_activity_data_todo').id)
+    #     ])
 
-        activities.action_done()
+    #     activities.action_done()
 
     def unlink(self):
         locked_statuses = {
