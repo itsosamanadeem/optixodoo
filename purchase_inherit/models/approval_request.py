@@ -271,68 +271,92 @@ class ApprovalForm(models.Model):
 
         po_model = self.env['purchase.order'].sudo()
         po_line_model = self.env['purchase.order.line'].sudo()
-        created_po_count = 0
+        created_line_count = 0
 
         for request in sudo_self:
-            # RFQ grouping rule requested:
-            # 1) different products (even same department) => different POs
-            # 2) same product + different departments => same PO, separate lines
-            # 3) approval product lines stay separate on the PO
             lines_by_po_key = defaultdict(list)
-            for line in request.product_line_ids.filtered(
-                    lambda l: not l.manager_refused 
-                    and l.status != 'refused' 
-                    and l.line_to_create == True
+
+            # Important: only new selected lines
+            lines_to_create = request.product_line_ids.filtered(
+                lambda l:
+                    not l.manager_refused
+                    and l.status != 'refused'
+                    and l.line_to_create
                     and not l.purchase_order_line_id
-                ):
+            )
+            raise UserError(str(lines_to_create))
+            # raise UserError(str([
+            #     (l.product_id.display_name, l.line_to_create, l.purchase_order_line_id.id)
+            #     for l in request.product_line_ids
+            # ]))
+            for line in lines_to_create:
                 qty_for_seller = self._line_qty(line) or 1.0
                 seller = line.seller_id or line.product_id.with_company(line.company_id)._select_seller(
                     quantity=qty_for_seller,
                     uom_id=line.product_id.uom_id,
                 )
+
                 if not seller:
                     continue
+
                 vendor = seller.partner_id
+
+                # Use same key you want for grouping.
+                # If vendor same should go to same PO, do not include department_id here.
                 po_key = (vendor.id, line.company_id.id)
+
                 lines_by_po_key[po_key].append((line, seller, vendor))
 
-            for _, packed_lines in lines_by_po_key.items():
+            for po_key, packed_lines in lines_by_po_key.items():
                 first_line, _, first_vendor = packed_lines[0]
-                po_vals = first_line._get_purchase_order_values(first_vendor)
-                po_vals['reason'] = request.reason
-                po_vals['approval_request_id'] = request.id
-                raise UserError(str(packed_lines))
-                purchase_order = po_model.create(po_vals)
-                request._copy_attachments_to_purchase_order(purchase_order)
 
-                for line, seller, _vendor in packed_lines:
+                # Search old PO/RFQ from same approval + vendor
+                purchase_order = po_model.search([
+                    ('approval_request_id', '=', request.id),
+                    ('partner_id', '=', first_vendor.id),
+                    ('company_id', '=', first_line.company_id.id),
+                    ('state', 'in', ['draft', 'sent']),
+                ], limit=1)
+
+                # If not found, create new PO
+                if not purchase_order:
+                    po_vals = first_line._get_purchase_order_values(first_vendor)
+                    po_vals['reason'] = request.reason
+                    po_vals['approval_request_id'] = request.id
+                    purchase_order = po_model.create(po_vals)
+                    request._copy_attachments_to_purchase_order(purchase_order)
+
+                # Add only the newly selected approval lines
+                for line, seller, vendor in packed_lines:
                     po_uom_qty = self._line_qty(line) or 0.0
+
                     po_line_vals = po_line_model._prepare_purchase_order_line(
                         line.product_id,
                         po_uom_qty,
                         seller.product_uom_id,
                         line.company_id,
-                        first_vendor,
+                        vendor,
                         purchase_order,
                     )
+
                     po_line = po_line_model.create(po_line_vals)
                     po_line.write({
                         'department_id': line.department_id.id,
                         'analytic_distribution': line.analytic_distribution,
                         'price_unit': line.price_unit or 0.0,
                     })
-                    line.purchase_order_line_id = po_line.id
-                    
-                created_po_count += 1
-                    
-        if not created_po_count:
-            raise UserError(
-                    "No inventory out or purchase order was created. "
-                    "Please ensure approved lines have a department, valid quantity, stock availability, "
-                    "and a vendor for items that must be purchased."
-                )
-        return True
 
+                    # This prevents duplicate creation next time
+                    line.purchase_order_line_id = po_line.id
+                    created_line_count += 1
+
+        if not created_line_count:
+            raise UserError(
+                "No new purchase order line was created. "
+                "Please select at least one line that has not already been created."
+            )
+
+        return True
 
     def action_refuse(self, approver=None):
         """
