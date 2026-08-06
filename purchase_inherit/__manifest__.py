@@ -32,6 +32,7 @@
         "security/ir.model.access.csv",
         "data/partner_sequence.xml",
         "data/product_sequence.xml",
+        "data/purchase_rfq_sequence.xml",
         "views/warrenty.xml",
         "views/product_product.xml",
         "views/budget_analytic.xml",
