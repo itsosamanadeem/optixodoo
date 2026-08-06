@@ -113,14 +113,15 @@ class PurchaseOrder(models.Model):
     
     @api.model_create_multi
     def create(self, vals_list):
-        # Some flows (e.g. approvals→purchase bridges / custom code) can create a PO without
-        # explicitly passing `currency_id`. Purchase Orders require a currency, so ensure
-        # it is always populated from the selected company (or current env company).
         for vals in vals_list:
             if not vals.get('currency_id'):
                 company_id = vals.get('company_id') or self.env.company.id
                 company = self.env['res.company'].browse(company_id)
                 vals['currency_id'] = company.currency_id.id
+
+            if vals.get('name', _('New')) == _('New'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('purchase.rfq') or _('New')
+
         return super().create(vals_list)
 
     def write(self, vals):
@@ -271,9 +272,15 @@ class PurchaseOrder(models.Model):
             ctx = dict(self.env.context)
             if order.state == 'draft':
                 ctx.update({'skip_budget_check': True})
+
             order = order.with_context(ctx)
+
             if not order.order_line:
                 raise UserError(_("Please add at least one line to confirm the purchase order."))
+
+            if order.name and order.name.startswith('RFQ'):
+                order.name = self.env['ir.sequence'].next_by_code('purchase.order') or order.name
+
             order.is_sent_back = False
             order.button_lock()
         return super(PurchaseOrder, self.with_context(ctx)).button_confirm() #type:ignore

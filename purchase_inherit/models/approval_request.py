@@ -196,10 +196,10 @@ class ApprovalForm(models.Model):
         self.sudo().write({
             'request_status': 'purchase_order_created'
             })
-        sudo_self._send_po_approval_email_to_scm()
-        # if self.env.user.has_group('purchase_inherit.group_scm_user'):
-        #     for rec in self:
-        #         rec._mark_scm_activities_done()
+        # sudo_self._send_po_approval_email_to_scm()
+        if self.env.user.has_group('purchase_inherit.group_scm_user'):
+            for rec in self:
+                rec._mark_scm_activities_done()
                 
         return res
 
@@ -429,51 +429,51 @@ class ApprovalForm(models.Model):
                 #         subtype_xmlid="mail.mt_comment",
                 #     )
 
-    def _send_po_approval_email_to_scm(self):
-        scm_group = self.env.ref('purchase_inherit.group_scm_user')
-        scm_users = scm_group.user_ids.filtered(lambda user: user.partner_id.email)
-        if not scm_users:
-            return
-
-        for request in self:
-            purchase_orders = request.product_line_ids.mapped('purchase_order_line_id.order_id')
-            for purchase_order in purchase_orders:
-                subject = _("Purchase Order %s Sent for Approval") % purchase_order.name
-                body = _(
-                    "Purchase Order %(po_name)s has been sent to you for approval from Approval Request %(request_name)s."
-                ) % {
-                    'po_name': purchase_order.name,
-                    'request_name': request.name,
-                }
-                purchase_order.message_post(
-                    body=body,
-                    partner_ids=scm_users.mapped('partner_id').ids,
-                    subtype_xmlid="mail.mt_comment",
-                )
-                mail_values = []
-                for user in scm_users:
-                    mail_values.append({
-                        'subject': subject,
-                        'body_html': "<p>%s</p>" % html_escape(body),
-                        'email_to': user.partner_id.email,
-                        'recipient_ids': [(4, user.partner_id.id)],
-                        'auto_delete': True,
-                    })
-                if mail_values:
-                    self.env['mail.mail'].sudo().create(mail_values)
-    
-    # def _mark_scm_activities_done(self):
+    # def _send_po_approval_email_to_scm(self):
     #     scm_group = self.env.ref('purchase_inherit.group_scm_user')
-    #     scm_user_ids = scm_group.users.ids
+    #     scm_users = scm_group.user_ids.filtered(lambda user: user.partner_id.email)
+    #     if not scm_users:
+    #         return
 
-    #     activities = self.env['mail.activity'].search([
-    #         ('res_model', '=', 'approval.request'),
-    #         ('res_id', '=', self.id),
-    #         ('user_id', 'in', scm_user_ids),
-    #         ('activity_type_id', '=', self.env.ref('mail.mail_activity_data_todo').id)
-    #     ])
+    #     for request in self:
+    #         purchase_orders = request.product_line_ids.mapped('purchase_order_line_id.order_id')
+    #         for purchase_order in purchase_orders:
+    #             subject = _("Purchase Order %s Sent for Approval") % purchase_order.name
+    #             body = _(
+    #                 "Purchase Order %(po_name)s has been sent to you for approval from Approval Request %(request_name)s."
+    #             ) % {
+    #                 'po_name': purchase_order.name,
+    #                 'request_name': request.name,
+    #             }
+    #             purchase_order.message_post(
+    #                 body=body,
+    #                 partner_ids=scm_users.mapped('partner_id').ids,
+    #                 subtype_xmlid="mail.mt_comment",
+    #             )
+    #             mail_values = []
+    #             for user in scm_users:
+    #                 mail_values.append({
+    #                     'subject': subject,
+    #                     'body_html': "<p>%s</p>" % html_escape(body),
+    #                     'email_to': user.partner_id.email,
+    #                     'recipient_ids': [(4, user.partner_id.id)],
+    #                     'auto_delete': True,
+    #                 })
+    #             if mail_values:
+    #                 self.env['mail.mail'].sudo().create(mail_values)
+    
+    def _mark_scm_activities_done(self):
+        scm_group = self.env.ref('purchase_inherit.group_scm_user')
+        scm_user_ids = scm_group.users.ids
 
-    #     activities.action_done()
+        activities = self.env['mail.activity'].search([
+            ('res_model', '=', 'approval.request'),
+            ('res_id', '=', self.id),
+            ('user_id', 'in', scm_user_ids),
+            ('activity_type_id', '=', self.env.ref('mail.mail_activity_data_todo').id)
+        ])
+
+        activities.action_done()
 
     def unlink(self):
         locked_statuses = {
