@@ -279,7 +279,9 @@ class PurchaseOrder(models.Model):
                 raise UserError(_("Please add at least one line to confirm the purchase order."))
 
             if order.name:
+
                 order.name = self.env['ir.sequence'].next_by_code('purchase.order') or order.name
+                raise UserError(order.name)
 
             order.is_sent_back = False
             order.button_lock()
