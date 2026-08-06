@@ -278,7 +278,7 @@ class PurchaseOrder(models.Model):
             if not order.order_line:
                 raise UserError(_("Please add at least one line to confirm the purchase order."))
 
-            if order.name and order.name.startswith('RFQ'):
+            if order.name:
                 order.name = self.env['ir.sequence'].next_by_code('purchase.order') or order.name
 
             order.is_sent_back = False
