@@ -320,9 +320,13 @@ class ApprovalForm(models.Model):
 
                 # If not found, create new PO
                 if not purchase_order:
+                    owner_department = request.request_owner_id.employee_id.department_id
+
                     po_vals = first_line._get_purchase_order_values(first_vendor)
                     po_vals['reason'] = request.reason
                     po_vals['approval_request_id'] = request.id
+                    po_vals['department_id'] = owner_department.id if owner_department else False
+
                     purchase_order = po_model.create(po_vals)
                     request._copy_attachments_to_purchase_order(purchase_order)
 

@@ -17,3 +17,6 @@ class BudgetWarningWizard(models.TransientModel):
         order.action_request_approval()
         order.is_sent_back = False
         return {'type': 'ir.actions.act_window_close'}
+
+    def action_cancel(self):
+        return {'type': 'ir.actions.act_window_close'}
