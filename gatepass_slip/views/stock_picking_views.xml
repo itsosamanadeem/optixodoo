@@ -7,13 +7,14 @@
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='note']" position="after">
-                <page name="gate_pass_info" string="Gatepass Details">
+                <page name="gate_pass_info" string="Consume/Issuance Receipt">
                     <group col="4" colspan="4">
-                        <field name="vehicle_no"/>
-                        <field name="vehicle_driver_name"/>
-                        <field name="driver_contact_number"/>
-                        <field name="corresponding_company"/>
-                        <field name="is_enable_order_line"/>
+                        <field name="created_by" readonly="1"/>
+                        <field name="vehicle_no" string="Store/Consumption Location" force_save="1" readonly="state in ['assigned', 'done', 'cancel']"/>
+                        <field name="vehicle_driver_name" string="Receiver Name" force_save="1" readonly="state in ['assigned', 'done', 'cancel']"/>
+                        <field name="driver_contact_number" force_save="1" readonly="state in ['assigned', 'done', 'cancel']"/>
+                        <field name="corresponding_company" string="Department" force_save="1" readonly="state in ['assigned', 'done', 'cancel']"/>
+                        <field name="is_enable_order_line" force_save="1" readonly="state in ['assigned', 'done', 'cancel']"/>
                     </group>
                 </page>
             </xpath>

@@ -1,5 +1,5 @@
-from odoo import models, fields, api
-from odoo.exceptions import UserError, ValidationError
+from odoo import models, fields, api #type:ignore
+from odoo.exceptions import UserError, ValidationError #type:ignore
 
 
 class PurchaseOrder(models.Model):

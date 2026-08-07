@@ -2,37 +2,38 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 {
-    'name': 'Purchase Approval Chain',
-    'version': '1.2',
-    'category': 'Customizations',
-    'sequence': -100,
-    'summary': 'Purchase orders,Approval Chain',
-    'website': 'https://www.odoo.com/app/purchase',
-    'depends': ['purchase',
-                'account_budget',
-                'base',
-                'web',
-                'hr',
-                'approvals',
-                'approvals_purchase',
-                'ml_purchase_approval',
-                'account',
-                'analytic',
-                'product',
-                'repair',
-                'gatepass_slip',
+    "name": "Purchase Control Hub",
+    "version": "19.0.1.0.0",
+    "category": "Purchases",
+    "sequence": -100,
+    "summary": "Approvals, budgets, serial import, and master-data controls.",
+    "website": "https://www.zalinotech.com",
+    "author": "Osama Nadeem",
+    "maintainer": "Zalino Tech",
+    "support": "support@zalinotech.com",
+    "depends": [
+        "purchase",
+        "account_budget",
+        "base",
+        "web",
+        "hr",
+        "approvals",
+        "approvals_purchase",
+        "ml_purchase_approval",
+        "account",
+        "analytic",
+        "product",
+        "repair",
+        "gatepass_slip",
+        "crm",
     ],
     "data": [
-        #security
         "security/groups.xml",
         "security/rules.xml",
         "security/ir.model.access.csv",
-
-        #data
         "data/partner_sequence.xml",
         "data/product_sequence.xml",
-        
-        #views
+        "data/purchase_rfq_sequence.xml",
         "views/warrenty.xml",
         "views/product_product.xml",
         "views/budget_analytic.xml",
@@ -47,25 +48,24 @@
         "views/stock_move_line.xml",
         "views/res_partner.xml",
         "views/account_tax.xml",
-        
-        #wizards
         "wizard/budget_wizard.xml",
+        "wizard/budget_line_filter_wizard.xml",
         "wizard/city_warning_wizard.xml",
         "wizard/stock_serial_import_wizard.xml",
         "wizard/account_payment_register_wizard.xml",
     ],
-    'assets': {
-        'web.assets_backend': [
-            'purchase_inherit/static/src/js/*',
-            'purchase_inherit/static/src/scss/*',
-            'purchase_inherit/static/src/xml/*',
+    "assets": {
+        "web.assets_backend": [
+            "purchase_inherit/static/src/js/*",
+            "purchase_inherit/static/src/scss/*",
+            "purchase_inherit/static/src/xml/*",
         ],
     },
-    'images': ['static/description/icon.svg'],
-    'license': 'LGPL-3',
-    'installable': True,
-    'auto_install': False,
-    'application': True,
-    'author': 'Osama Nadeem',
-    'license': 'LGPL-3',
+    "images": [
+        "static/description/icon.png",
+    ],
+    "license": "LGPL-3",
+    "installable": True,
+    "auto_install": False,
+    "application": True,
 }

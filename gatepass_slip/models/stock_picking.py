@@ -27,6 +27,12 @@ class StockPicking(models.Model):
     """Inherit model 'stock.picking' and add required fields """
     _inherit = 'stock.picking'
 
+    created_by = fields.Many2one(
+        "res.users",
+        string="Created By",
+        default=lambda self: self.env.user,
+        readonly=True,
+    )
     is_enable_order_line = fields.Boolean(string='Include Product Details',
                                           default=True,
                                           help="If you want to print the "

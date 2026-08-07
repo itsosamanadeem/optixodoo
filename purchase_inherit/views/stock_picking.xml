@@ -18,18 +18,6 @@
             <xpath expr="/form/sheet/group/group/field[@name='partner_id']" position="after">
                 <field name="customer_cnic_number" readonly="1"/>
             </xpath>
-            <!-- <xpath expr="/form//page[@name='gate_pass_info']" position="attributes">
-                <attribute name="string">Issuance/Consume item Receipts</attribute>
-            </xpath> -->
-            <!-- <xpath expr="/form//field[@name='vehicle_no']" position="attributes">
-                <attribute name="string">Issuance/Consumption</attribute>
-            </xpath>
-            <xpath expr="/form//field[@name='vehicle_driver_name']" position="attributes">
-                <attribute name="string">Receiver Name</attribute>
-            </xpath>
-            <xpath expr="/form//field[@name='corresponding_company']" position="attributes">
-                <attribute name="string">Department/Customer</attribute>
-            </xpath> -->
         </field>
     </record>
 </odoo>

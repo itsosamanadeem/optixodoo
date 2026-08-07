@@ -7,7 +7,20 @@ class BudgetAnalytics(models.Model):
         ('restrict','Restrict'),
         ('allow','Allow'),
         ('warning','Show only warning'),
-    ],string="Configuration", required=True)
+    ],string="Configuration", required=True, default='warning',)
+
+    def action_open_budget_line_filter(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Filter Budget Lines'),
+            'res_model': 'budget.line.filter.wizard.purchase',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_budget_analytic_id': self.id,
+            },
+        }
     
 
 class BudgetLine(models.Model):

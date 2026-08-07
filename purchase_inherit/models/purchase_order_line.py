@@ -21,19 +21,19 @@ class PurchaseOrderLine(models.Model):
     #         raise UserError("Cannot modify sent-back orders.")
     #     return super().write(vals)
 
-    @api.depends('department_id','department_id.analytic_account_id','department_id.analytic_city_id','department_id.analytic_gl_id')
+    @api.depends('department_id','department_id.analytic_account_id','department_id.analytic_city_id','product_id','product_id.analytic_gl_id')
     def _compute_analytic_distribution(self):
         # Keep the base analytic behavior, then auto-fill from department cost center.
         super()._compute_analytic_distribution()
         for rec in self:
             aa_id = rec.department_id.analytic_account_id.id
             ac_id = rec.department_id.analytic_city_id.id
-            gl_id = rec.department_id.analytic_gl_id.id
+            gl_id = rec.product_id.analytic_gl_id.id
             key = self._distribution_key(aa_id, ac_id, gl_id)
             if key and not rec.analytic_distribution:
                 rec.analytic_distribution = {key: 100}
 
-    @api.onchange('department_id','department_id.analytic_account_id','department_id.analytic_city_id','department_id.analytic_gl_id')
+    @api.onchange('department_id','department_id.analytic_account_id','department_id.analytic_city_id','product_id','product_id.analytic_gl_id')
     def _onchange_department_ids_set_analytic_distribution(self):
         """If exactly one department is selected, auto-fill from its cost center."""
         if 'analytic_distribution' not in self._fields:
@@ -43,7 +43,7 @@ class PurchaseOrderLine(models.Model):
                 continue
             aa = rec.department_id.analytic_account_id
             ac = rec.department_id.analytic_city_id
-            gl_id = rec.department_id.analytic_gl_id
+            gl_id = rec.product_id.analytic_gl_id
             key = self._distribution_key(aa.id, ac.id, gl_id.id)
             if key:
                 rec.analytic_distribution = {key: 100}

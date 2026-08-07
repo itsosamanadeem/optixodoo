@@ -32,7 +32,7 @@ Features
     "depends": ["purchase"],
     "data": [
         "security/ir.model.access.csv",
-        "data/data.xml",
+        # "data/data.xml",
         "wizard/approval_wizard.xml",
         "wizard/returned_wizard.xml",
         "views/approval_group_views.xml",

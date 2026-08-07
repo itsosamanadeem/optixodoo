@@ -51,15 +51,73 @@ class ApprovalProductLine(models.Model):
         string="Is Service Product",
         compute="_compute_is_service_product",
     )
-    @api.depends('product_id','product_id.standard_price')
-    def _compute_price_unit(self):
-        for rec in self:
-            rec.price_unit = rec.product_id.standard_price
+    requested_qty = fields.Float(
+        string="Requested Qty",
+        compute="_compute_requested_qty",
+        store=True,
+    )
+    available_qty = fields.Float(
+        string="Available Qty",
+        compute="_compute_inventory_status",
+        store=True,
+    )
+    is_available_in_inventory = fields.Boolean(
+        string="Available In Inventory",
+        compute="_compute_inventory_status",
+        store=True,
+    )
+    inventory_status = fields.Selection(
+        [
+            ('available', 'Available'),
+            ('not_available', 'Not Available'),
+            ('service', 'Service'),
+        ],
+        string="Inventory Status",
+        compute="_compute_inventory_status",
+        store=True,
+    )
 
+    line_to_create = fields.Boolean(
+        string="Create",
+        default=True
+    )
+    
+    @api.depends('quantity', 'po_uom_qty')
+    def _compute_requested_qty(self):
+        for rec in self:
+            rec.requested_qty = rec.po_uom_qty or rec.quantity or 0.0
+
+    @api.depends('product_id', 'requested_qty', 'product_id.qty_available', 'product_id.free_qty', 'product_id.type')
+    def _compute_inventory_status(self):
+        for rec in self:
+            requested = rec.po_uom_qty or rec.quantity or 0.0
+
+            if not rec.product_id:
+                rec.available_qty = 0.0
+                rec.is_available_in_inventory = False
+                rec.inventory_status = 'not_available'
+                continue
+
+            if rec.product_id.type == 'service':
+                rec.available_qty = 0.0
+                rec.is_available_in_inventory = True
+                rec.inventory_status = 'service'
+                continue
+
+            available = rec.product_id.qty_available
+            rec.available_qty = available
+            rec.is_available_in_inventory = available >= requested
+            rec.inventory_status = 'available' if available >= requested else 'not_available'
+            
     @api.depends("product_id", "product_id.type")
     def _compute_is_service_product(self):
         for rec in self:
             rec.is_service_product = rec.product_id.type == "service"
+            
+    @api.depends('product_id','product_id.standard_price')
+    def _compute_price_unit(self):
+        for rec in self:
+            rec.price_unit = rec.product_id.standard_price
             
     @api.depends('product_id', 'product_id.property_account_expense_id', 'product_id.property_account_expense_id.display_name')
     def _compute_product_gl(self):
@@ -91,26 +149,26 @@ class ApprovalProductLine(models.Model):
         readonly=True,
     )
     
-    @api.depends('department_analytic_account_id','department_id','department_id.analytic_gl_id', 'department_analytic_city_id')
+    @api.depends('department_analytic_account_id','product_id','product_id.analytic_gl_id', 'department_analytic_city_id')
     def _compute_analytic_distribution(self):
         # Keep the base analytic behavior, then auto-fill from department cost center.
         super()._compute_analytic_distribution()
         for rec in self:
             aa_id = rec.department_analytic_account_id.id
             ac_id = rec.department_analytic_city_id.id
-            gl_id = rec.department_id.analytic_gl_id.id
+            gl_id = rec.product_id.analytic_gl_id.id
             key = self._distribution_key(aa_id, ac_id, gl_id)
             if key and not rec.analytic_distribution:
                 rec.analytic_distribution = {key: 100}
 
-    @api.onchange('department_id','department_id.analytic_gl_id','department_analytic_city_id')
+    @api.onchange('department_id','product_id','product_id.analytic_gl_id')
     def _onchange_department_id_set_analytic_distribution(self):
         for rec in self:
             if not rec.department_id:
                 continue
             aa = rec.department_id.analytic_account_id
             ac = rec.department_id.analytic_city_id
-            gl_id = rec.department_id.analytic_gl_id
+            gl_id = rec.product_id.analytic_gl_id
             key = self._distribution_key(aa.id, ac.id, gl_id.id)
             if key:
                 rec.analytic_distribution = {key: 100}

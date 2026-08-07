@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields #type: ignore
 
 class BudgetWarningWizard(models.TransientModel):
     _name = 'budget.warning.wizard'
@@ -10,8 +10,11 @@ class BudgetWarningWizard(models.TransientModel):
     def action_proceed(self):
         self.ensure_one()
         order = self.order_id.with_context(skip_budget_check=True)
-        
-        order.button_approve()
+
+        if order.name and order.name.startswith('RFQ'):
+            order.name = self.env['ir.sequence'].next_by_code('purchase.order') or order.name
+
+        order.action_request_approval()
         order.is_sent_back = False
         return {'type': 'ir.actions.act_window_close'}
 
