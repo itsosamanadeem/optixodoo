@@ -35,6 +35,14 @@ class ApprovalForm(models.Model):
         compute="_compute_stock_picking_count",
     )
 
+    project_id = fields.Many2one(
+        'crm.lead',
+        string="Project",
+        index=True,
+        tracking=True,
+        domain="[('stage_id.is_won', '=', True)]",
+        groups="purchase_inherit.group_hr_revenue_share"
+    )
     @api.depends('stock_picking_id', 'request_status')
     def _compute_stock_picking_count(self):
         for order in self:
