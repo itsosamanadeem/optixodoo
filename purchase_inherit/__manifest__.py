@@ -25,6 +25,7 @@
         "product",
         "repair",
         "gatepass_slip",
+        "crm",
     ],
     "data": [
         "security/groups.xml",
