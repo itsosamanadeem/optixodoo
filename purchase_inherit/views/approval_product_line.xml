@@ -41,6 +41,9 @@
             <xpath expr="/form//field[@name='amount']" position="after">
                 <field name="request_type"/>
             </xpath>
+            <xpath expr="/form//field[@name='request_type']" position="after">
+                <field name="project_id" groups="purchase_inherit.group_hr_revenue_share"/>
+            </xpath>
             <xpath expr="//field[@name='product_line_ids']" position="attributes">
                 <attribute name="readonly">False</attribute>
             </xpath>
