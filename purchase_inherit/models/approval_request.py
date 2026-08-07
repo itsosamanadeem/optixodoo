@@ -41,7 +41,7 @@ class ApprovalForm(models.Model):
         index=True,
         tracking=True,
         domain="[('stage_id.is_won', '=', True)]",
-        groups="purchase_inherit.group_hr_revenue_share",
+        groups="purchase_inherit.group_hr_revenue_share"
     )
     @api.depends('stock_picking_id', 'request_status')
     def _compute_stock_picking_count(self):
