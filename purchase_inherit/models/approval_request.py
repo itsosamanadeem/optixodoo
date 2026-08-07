@@ -29,6 +29,32 @@ class ApprovalForm(models.Model):
         store=True, index=True, tracking=True,
         group_expand=True)
     
+    stock_picking_id = fields.Many2one('stock.picking', string="Internal Transfer", readonly=True, copy=False, index=True, tracking=True)
+    stock_picking_count = fields.Integer(
+        string="Internal Transfer Count",
+        compute="_compute_stock_picking_count",
+    )
+
+    @api.depends('stock_picking_id', 'request_status')
+    def _compute_stock_picking_count(self):
+        for order in self:
+            order.stock_picking_count = (
+                1 if order.stock_picking_id else 0
+            )
+
+    def action_view_ir_request(self):
+        self.ensure_one()
+        if not self.stock_picking_id:
+            raise UserError(_("No internal transfer has been created for this request."))
+        return {
+            'name': _('Internal Transfer'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': self.stock_picking_id.id,
+            'target': 'current',
+        }
+
     @staticmethod
     def _line_qty(line):
         return line.po_uom_qty or line.quantity or 0.0
@@ -92,6 +118,7 @@ class ApprovalForm(models.Model):
                     'picking_type_id': picking_type.id,
                     'location_id': source_location.id,
                     'location_dest_id': department.location_id.id,
+                    'note' : request.reason,
                     move_field_name: [],
                 }
                 for line in department_lines:
@@ -107,9 +134,9 @@ class ApprovalForm(models.Model):
                         'company_id': line.company_id.id,
                     }))
                 if picking_vals[move_field_name]:
-                    stock_picking.create(picking_vals)
+                    picking = stock_picking.create(picking_vals)
                     created_transfer_count += 1
-                request.sudo().write({'request_status': 'internal_transfer_created'})
+                request.sudo().write({'request_status': 'internal_transfer_created', 'stock_picking_id': picking.id})
         return created_transfer_count
     
     @api.depends('product_line_ids', 'product_line_ids.manager_refused', 'request_status')
@@ -255,7 +282,7 @@ class ApprovalForm(models.Model):
             if request.product_line_ids.filtered(lambda l: l.manager_refused):
                 # If any line is refused by a manager, the request cannot be fully approved.
                 request.write({'request_status': 'partial_approved'})
-        self.sudo()._create_activity()
+        # self.sudo()._create_activity()
         return res
 
     @api.depends_context('uid')
@@ -320,9 +347,13 @@ class ApprovalForm(models.Model):
 
                 # If not found, create new PO
                 if not purchase_order:
+                    owner_department = request.request_owner_id.employee_id.department_id
+
                     po_vals = first_line._get_purchase_order_values(first_vendor)
                     po_vals['reason'] = request.reason
                     po_vals['approval_request_id'] = request.id
+                    po_vals['department_id'] = owner_department.id if owner_department else False
+
                     purchase_order = po_model.create(po_vals)
                     request._copy_attachments_to_purchase_order(purchase_order)
 

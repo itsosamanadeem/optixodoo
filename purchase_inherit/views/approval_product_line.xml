@@ -4,6 +4,17 @@
         <field name="model">approval.request</field>
         <field name="inherit_id" ref="approvals.approval_request_view_form"/>
         <field name="arch" type="xml">
+            <xpath expr="/form//button[@name='action_open_purchase_orders']" position="after">
+                <button name="action_view_ir_request"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-check-square-o"
+                        invisible="not stock_picking_id">
+                    <field name="stock_picking_count"
+                        widget="statinfo"
+                        string="Internal Transfer"/>
+                </button>
+            </xpath>
             <xpath expr="/form//button[@name='action_create_purchase_orders']" position="attributes">
                 <attribute name="groups">purchase_inherit.group_scm_user,purchase_inherit.group_ceo</attribute>
             </xpath>
