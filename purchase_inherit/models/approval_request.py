@@ -29,6 +29,31 @@ class ApprovalForm(models.Model):
         store=True, index=True, tracking=True,
         group_expand=True)
     
+    stock_picking_id = fields.Many2one('stock.picking', string="Internal Transfer", readonly=True, copy=False, index=True, tracking=True)
+    stock_picking_count = fields.Integer(
+        string="Internal Transfer Count",
+        compute="_compute_stock_picking_count",
+    )
+
+    def _compute_stock_picking_count(self):
+        for order in self:
+            order.stock_picking_count = (
+                1 if order.stock_picking_id else 0
+            )
+
+    def action_view_ir_request(self):
+        self.ensure_one()
+        if not self.stock_picking_id:
+            raise UserError(_("No internal transfer has been created for this request."))
+        return {
+            'name': _('Internal Transfer'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': self.stock_picking_id.id,
+            'target': 'current',
+        }
+
     @staticmethod
     def _line_qty(line):
         return line.po_uom_qty or line.quantity or 0.0
@@ -92,6 +117,7 @@ class ApprovalForm(models.Model):
                     'picking_type_id': picking_type.id,
                     'location_id': source_location.id,
                     'location_dest_id': department.location_id.id,
+                    'note' : request.reason,
                     move_field_name: [],
                 }
                 for line in department_lines:
@@ -109,7 +135,7 @@ class ApprovalForm(models.Model):
                 if picking_vals[move_field_name]:
                     stock_picking.create(picking_vals)
                     created_transfer_count += 1
-                request.sudo().write({'request_status': 'internal_transfer_created'})
+                request.sudo().write({'request_status': 'internal_transfer_created', 'stock_picking_id': stock_picking.id})
         return created_transfer_count
     
     @api.depends('product_line_ids', 'product_line_ids.manager_refused', 'request_status')
@@ -255,7 +281,7 @@ class ApprovalForm(models.Model):
             if request.product_line_ids.filtered(lambda l: l.manager_refused):
                 # If any line is refused by a manager, the request cannot be fully approved.
                 request.write({'request_status': 'partial_approved'})
-        self.sudo()._create_activity()
+        # self.sudo()._create_activity()
         return res
 
     @api.depends_context('uid')
