@@ -35,6 +35,7 @@ class ApprovalForm(models.Model):
         compute="_compute_stock_picking_count",
     )
 
+    @api.depends('stock_picking_id', 'request_status')
     def _compute_stock_picking_count(self):
         for order in self:
             order.stock_picking_count = (
@@ -133,9 +134,9 @@ class ApprovalForm(models.Model):
                         'company_id': line.company_id.id,
                     }))
                 if picking_vals[move_field_name]:
-                    stock_picking.create(picking_vals)
+                    picking = stock_picking.create(picking_vals)
                     created_transfer_count += 1
-                request.sudo().write({'request_status': 'internal_transfer_created', 'stock_picking_id': stock_picking.id})
+                request.sudo().write({'request_status': 'internal_transfer_created', 'stock_picking_id': picking.id})
         return created_transfer_count
     
     @api.depends('product_line_ids', 'product_line_ids.manager_refused', 'request_status')
