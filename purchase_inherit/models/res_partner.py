@@ -1,11 +1,11 @@
 from odoo import models, fields, api #type: ignore
 
 class ResPartner(models.Model):
-    _inherit = "res.partner"
+    _inherit = ["res.partner",'mail.thread', 'mail.activity.mixin']
     # _rec_name = "code,name"
-    code = fields.Char(string="Code", required=True, copy=False, readonly=True, index=True, default="Customer")
-    cnic_number = fields.Char(string="CNIC Number")
-    
+    code = fields.Char(string="Code", required=True, copy=False, readonly=True, index=True, default="Customer", tracking=True)
+    cnic_number = fields.Char(string="CNIC Number", tracking=True)
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:

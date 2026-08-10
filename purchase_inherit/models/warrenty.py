@@ -5,13 +5,13 @@ from odoo import api, fields, models
 class ProductWarrenty(models.Model):
     _inherit = "stock.lot"
 
-    warrenty_start = fields.Date(string="Warrenty Start")
-    warrenty_end = fields.Date(string="Warrenty End")
+    warrenty_start = fields.Date(string="Warrenty Start", tracking=True)
+    warrenty_end = fields.Date(string="Warrenty End", tracking=True)
 
     warrenty_status = fields.Selection([
         ("in_warrenty", "In Warrenty"),
         ("no_warrenty", "Not in Warrenty"),
-    ], string="Warrenty Status", compute="_compute_warrenty_status", store=True)
+    ], string="Warrenty Status", compute="_compute_warrenty_status", store=True, tracking=True)
 
     @api.depends("warrenty_start", "warrenty_end")
     def _compute_warrenty_status(self):

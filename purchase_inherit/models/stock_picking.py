@@ -2,21 +2,24 @@ from odoo import fields, models #type: ignore
 
 
 class StockPicking(models.Model):
-    _inherit = "stock.picking"
+    _inherit = ["stock.picking",'mail.thread', 'mail.activity.mixin']
 
     product_default_code = fields.Char(
         string="Product Default Code",
         compute="_compute_product_info_fields",
+        tracking=True,
     )
     asset_tag_no = fields.Char(
         string="Asset Tag No.",
         compute="_compute_product_info_fields",
+        tracking=True,
     )
     customer_cnic_number = fields.Char(
         string="Customer CNIC",
         related="partner_id.cnic_number",
         store=True,
         readonly=True,
+        tracking=True,
     )
 
     def _compute_product_info_fields(self):

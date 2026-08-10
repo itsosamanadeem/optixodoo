@@ -6,8 +6,8 @@ class CityWarningWizard(models.TransientModel):
     _name = 'city.warning.wizard'
     _description = 'City Warning Wizard'
 
-    request_id = fields.Many2one('approval.request')
-    message = fields.Text()
+    request_id = fields.Many2one('approval.request', tracking=True)
+    message = fields.Text(tracking=True)
 
     def action_proceed(self):
         self.ensure_one()

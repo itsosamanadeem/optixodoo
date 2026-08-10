@@ -13,6 +13,7 @@
     "support": "support@zalinotech.com",
     "depends": [
         "purchase",
+        "mail",
         "account_budget",
         "base",
         "web",

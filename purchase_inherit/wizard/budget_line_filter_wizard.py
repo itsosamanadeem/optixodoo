@@ -10,28 +10,33 @@ class BudgetLineFilterWizard(models.TransientModel):
         string='Budget',
         required=True,
         readonly=True,
+        tracking=True,
     )
     account_id = fields.Many2one(
         'account.analytic.account',
         string='Analytic Account',
         domain=[("plan_id.name", "ilike", "Cost Center")],
+        tracking=True,
     )
     x_plan6_id = fields.Many2one(
         'account.analytic.account',
         string='City',
         domain=[("plan_id.name", "ilike", "City")],
+        tracking=True,
     )
     x_plan8_id = fields.Many2one(
         'account.analytic.account',
         string='Analytic GL',
         domain=[("plan_id.name", "ilike", "GL")],
+        tracking=True,
     )
     product_id = fields.Many2one(
         'product.template',
         string='Product',
+        tracking=True,
     )
-    date_from = fields.Date(string='Start Date')
-    date_to = fields.Date(string='End Date')
+    date_from = fields.Date(string='Start Date', tracking=True)
+    date_to = fields.Date(string='End Date', tracking=True)
     budget_amount_operator = fields.Selection(
         selection=[
             ('=', 'Equals'),
@@ -39,8 +44,9 @@ class BudgetLineFilterWizard(models.TransientModel):
             ('<=', 'Less Than or Equal'),
         ],
         string='Budget Amount Filter',
+        tracking=True,
     )
-    budget_amount = fields.Float(string='Budget Amount')
+    budget_amount = fields.Float(string='Budget Amount', tracking=True)
 
     def _get_filter_domain(self):
         self.ensure_one()

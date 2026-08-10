@@ -14,9 +14,9 @@ class StockSerialImportWizard(models.TransientModel):
     _name = "stock.serial.import.wizard"
     _description = "Stock Serial Import Wizard"
 
-    move_id = fields.Many2one("stock.move", required=True, readonly=True)
-    file = fields.Binary(required=True)
-    file_name = fields.Char()
+    move_id = fields.Many2one("stock.move", required=True, readonly=True, tracking=True)
+    file = fields.Binary(required=True, tracking=True)
+    file_name = fields.Char(tracking=True)
 
     def _extract_serials_from_xlsx(self, file_content):
         if not load_workbook:

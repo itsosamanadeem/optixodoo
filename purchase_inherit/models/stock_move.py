@@ -2,7 +2,7 @@ from odoo import models #type: ignore
 
 
 class StockMove(models.Model):
-    _inherit = "stock.move"
+    _inherit = ["stock.move",'mail.thread', 'mail.activity.mixin']
 
     def action_open_serial_import_wizard(self):
         self.ensure_one()

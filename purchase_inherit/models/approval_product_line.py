@@ -8,7 +8,7 @@ _logger = logging.getLogger(__name__)
 
 class ApprovalProductLine(models.Model):
     _name="approval.product.line"
-    _inherit = ['approval.product.line', 'analytic.mixin']
+    _inherit = ['approval.product.line', 'analytic.mixin','mail.thread', 'mail.activity.mixin']
 
     @staticmethod
     def _distribution_key(*analytic_ids):
@@ -31,40 +31,47 @@ class ApprovalProductLine(models.Model):
         'hr.department',
         string='Departments',
         domain=_domain_department_id_for_user,
+        tracking=True,
     )
-    product_gl_description = fields.Text(string="GL", compute="_compute_product_gl", readonly=True, store=True)
+    product_gl_description = fields.Text(string="GL", compute="_compute_product_gl", readonly=True, store=True, tracking=True)
     currency_id = fields.Many2one(
         'res.currency',
         string="Currency",
         related='company_id.currency_id',
         store=True,
         readonly=True,
+        tracking=True,
     )
     price_unit = fields.Monetary(
         compute="_compute_price_unit",
         string="Price",
         store=True,
         readonly=True,
-        currency_field='currency_id'
+        currency_field='currency_id',
+        tracking=True,
     )
     is_service_product = fields.Boolean(
         string="Is Service Product",
         compute="_compute_is_service_product",
+        tracking=True,
     )
     requested_qty = fields.Float(
         string="Requested Qty",
         compute="_compute_requested_qty",
         store=True,
+        tracking=True,
     )
     available_qty = fields.Float(
         string="Available Qty",
         compute="_compute_inventory_status",
         store=True,
+        tracking=True,
     )
     is_available_in_inventory = fields.Boolean(
         string="Available In Inventory",
         compute="_compute_inventory_status",
         store=True,
+        tracking=True,
     )
     inventory_status = fields.Selection(
         [
@@ -75,13 +82,15 @@ class ApprovalProductLine(models.Model):
         string="Inventory Status",
         compute="_compute_inventory_status",
         store=True,
+        tracking=True,
     )
 
     line_to_create = fields.Boolean(
         string="Create",
-        default=True
+        default=True,
+        tracking=True,
     )
-    
+
     @api.depends('quantity', 'po_uom_qty')
     def _compute_requested_qty(self):
         for rec in self:
@@ -108,28 +117,29 @@ class ApprovalProductLine(models.Model):
             rec.available_qty = available
             rec.is_available_in_inventory = available >= requested
             rec.inventory_status = 'available' if available >= requested else 'not_available'
-            
+
     @api.depends("product_id", "product_id.type")
     def _compute_is_service_product(self):
         for rec in self:
             rec.is_service_product = rec.product_id.type == "service"
-            
+
     @api.depends('product_id','product_id.standard_price')
     def _compute_price_unit(self):
         for rec in self:
             rec.price_unit = rec.product_id.standard_price
-            
+
     @api.depends('product_id', 'product_id.property_account_expense_id', 'product_id.property_account_expense_id.display_name')
     def _compute_product_gl(self):
         for rec in self:
             rec.product_gl_description = rec.product_id.property_account_expense_id.display_name if rec.product_id else False
-            
+
     department_analytic_account_id = fields.Many2one(
         "account.analytic.account",
         string="Cost Center",
         related="department_id.analytic_account_id",
         store=True,
         readonly=True,
+        tracking=True,
     )
     department_analytic_city_id = fields.Many2one(
         "account.analytic.account",
@@ -137,6 +147,7 @@ class ApprovalProductLine(models.Model):
         related="department_id.analytic_city_id",
         store=True,
         readonly=True,
+        tracking=True,
     )
 
     # `approval.product.line` is used by `approvals_purchase` to generate purchase orders.
@@ -147,8 +158,9 @@ class ApprovalProductLine(models.Model):
         related='company_id.currency_id',
         store=True,
         readonly=True,
+        tracking=True,
     )
-    
+
     @api.depends('department_analytic_account_id','product_id','product_id.analytic_gl_id', 'department_analytic_city_id')
     def _compute_analytic_distribution(self):
         # Keep the base analytic behavior, then auto-fill from department cost center.
@@ -172,27 +184,30 @@ class ApprovalProductLine(models.Model):
             key = self._distribution_key(aa.id, ac.id, gl_id.id)
             if key:
                 rec.analytic_distribution = {key: 100}
-    
+
     status = fields.Selection([
         ('approved', 'Approved'),
         ('refused', 'Refused'),
     ], required=True, copy=False, default='approved', tracking=True)
-    
+
     manager_refused = fields.Boolean(
         string="Refused By Department Manager",
         default=False,
         copy=False,
+        tracking=True,
     )
     manager_refused_by_id = fields.Many2one(
         'res.users',
         string="Refused By",
         copy=False,
         readonly=True,
+        tracking=True,
     )
     manager_refused_date = fields.Datetime(
         string="Refused On",
         copy=False,
         readonly=True,
+        tracking=True,
     )
 
     def _check_products_vendor(self):
