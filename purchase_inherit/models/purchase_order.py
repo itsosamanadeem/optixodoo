@@ -14,7 +14,9 @@ class PurchaseOrder(models.Model):
         ('purchase', 'Purchase Order'),
         ('cancel', 'Cancelled')
     ], string='Status', readonly=True, index=True, copy=False, default='draft', tracking=True)
-        # ('pr return', 'PR Returned'),
+    
+    revenue_share = fields.Boolean(string="Revenue Share", default=False, tracking=True)
+        
     department_id = fields.Many2one(
         'hr.department',
         string="Department",

@@ -14,6 +14,7 @@ class ApprovalForm(models.Model):
     request_type = fields.Selection([
         ('pr', 'Purchase Request'),
         ('ir', 'Internal Request'),
+        ('rs', 'Revenue Share Request'),
         ], default='pr', required=True, index=True, tracking=True)
 
     request_status = fields.Selection([
@@ -362,7 +363,7 @@ class ApprovalForm(models.Model):
                     po_vals['reason'] = request.reason
                     po_vals['approval_request_id'] = request.id
                     po_vals['department_id'] = owner_department.id if owner_department else False
-
+                    po_vals['revenue_share'] = True if request.request_type == 'rs' else False
                     purchase_order = po_model.create(po_vals)
                     request._copy_attachments_to_purchase_order(purchase_order)
 
@@ -503,13 +504,17 @@ class ApprovalForm(models.Model):
     #                 self.env['mail.mail'].sudo().create(mail_values)
 
     def _mark_scm_activities_done(self):
-        scm_group = self.env.ref('purchase_inherit.group_scm_user')
-        scm_user_ids = scm_group.users.ids
-
+        if self.request_type != 'rs':
+            group = self.env.ref('purchase_inherit.group_ceo')
+            user_ids = group.users.ids
+        else:
+            group = self.env.ref('purchase_inherit.group_scm_user')
+            user_ids = group.users.ids
+            
         activities = self.env['mail.activity'].search([
             ('res_model', '=', 'approval.request'),
             ('res_id', '=', self.id),
-            ('user_id', 'in', scm_user_ids),
+            ('user_id', 'in', user_ids),
             ('activity_type_id', '=', self.env.ref('mail.mail_activity_data_todo').id)
         ])
 
