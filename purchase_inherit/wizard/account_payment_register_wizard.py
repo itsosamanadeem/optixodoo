@@ -5,33 +5,37 @@ from odoo.tools.misc import clean_context # type: ignore
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = "account.payment.register"
-    
+
     payment_difference_handling = fields.Selection(
         string="Payment Difference Handling",
         selection=[('open', 'Keep open'), ('reconcile', 'Mark as fully paid'), ('withhold','Tax Entries')],
         compute='_compute_payment_difference_handling',
         store=True,
         readonly=False,
+        tracking=True,
     )
     price_unit = fields.Float(
         string="Untaxed Amount",
         copy=False,
         readonly=True,
         compute="_compute_amount_untaxed",
+        tracking=True,
     )
     amount_before_tax = fields.Monetary(
         string="Base Amount",
         currency_field="currency_id",
         copy=False,
         compute="_compute_amount_before_tax",
+        tracking=True,
     )
     income_tax_ids = fields.One2many(
         "account.payment.register.tax.line",
         "wizard_id",
         string="Income Tax Line",
+        tracking=True,
     )
-    total_taxed_amount = fields.Float(string="Total Taxed Amount", readonly=True, compute="_compute_total_taxed_amount", store=True)
-    
+    total_taxed_amount = fields.Float(string="Total Taxed Amount", readonly=True, compute="_compute_total_taxed_amount", store=True, tracking=True)
+
     @api.depends("income_tax_ids", "income_tax_ids.amount")
     def _compute_total_taxed_amount(self):
         for wizard in self:
@@ -47,7 +51,7 @@ class AccountPaymentRegister(models.TransientModel):
     def _compute_amount_before_tax(self):
         for wizard in self:
             wizard.amount_before_tax = wizard.price_unit
-    
+
     @api.depends(
         'can_edit_wizard',
         'source_amount',
@@ -75,7 +79,7 @@ class AccountPaymentRegister(models.TransientModel):
                 wizard.payment_difference_handling = 'withhold'
                 wizard.writeoff_is_exchange_account = True
         return res
-    
+
     def action_create_payments(self):
         res = super(AccountPaymentRegister, self).action_create_payments()
         move = self.line_ids[:1].move_id
@@ -99,7 +103,7 @@ class AccountPaymentRegister(models.TransientModel):
     #         if not wizard.income_tax_ids:
     #             base_amount = wizard.amount_before_tax or wizard.amount or 0.0
     #             wizard.amount = base_amount - sum(abs(x) for x in wizard.income_tax_ids.mapped("amount"))
-                
+
     # def _create_payment_vals_from_wizard(self, batch_result):
     #     payment_vals = super(AccountPaymentRegister, self)._create_payment_vals_from_wizard(batch_result)
     #     for wizard in self:
@@ -123,7 +127,7 @@ class AccountPaymentRegister(models.TransientModel):
     #             })
     #     # raise UserError(str(payment_vals))
     #     return payment_vals
-    
+
     # def _create_payments(self):
     #     self.ensure_one()
     #     batches = []
@@ -205,7 +209,7 @@ class AccountPaymentRegister(models.TransientModel):
     #     # Prevent default_ context keys to interfere with account.payment context (eg: ``default_partner_bank_id``
     #     # transfered from ``account.payment.register`` wizard to ``account.payment`` creation.
     #     payments = wizard.with_context(clean_context(self.env.context))._init_payments(to_process, edit_mode=edit_mode)
-        
+
     #     # raise UserError(str(to_process))
     #     wizard._post_payments(to_process, edit_mode=edit_mode)
     #     wizard._reconcile_payments(to_process, edit_mode=edit_mode)
@@ -221,12 +225,13 @@ class VendorPaymentTaxLine(models.TransientModel):
         string="Payment Register Wizard",
         required=True,
         ondelete="cascade",
+        tracking=True,
     )
-    tax_id = fields.Many2one("account.tax", string="Tax")
-    amount = fields.Float(string="Amount", compute="_compute_amount_tax", store=True)
-    
-    account_id = fields.Many2one("account.account", string="Account", related="tax_id.account_id", store=True, readonly=True)
-    
+    tax_id = fields.Many2one("account.tax", string="Tax", tracking=True)
+    amount = fields.Float(string="Amount", compute="_compute_amount_tax", store=True, tracking=True)
+
+    account_id = fields.Many2one("account.account", string="Account", related="tax_id.account_id", store=True, readonly=True, tracking=True)
+
     @api.depends(
         "tax_id",
         "wizard_id.amount_before_tax",

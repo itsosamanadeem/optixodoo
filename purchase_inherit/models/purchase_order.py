@@ -14,21 +14,23 @@ class PurchaseOrder(models.Model):
         ('purchase', 'Purchase Order'),
         ('cancel', 'Cancelled')
     ], string='Status', readonly=True, index=True, copy=False, default='draft', tracking=True)
-        # ('pr return', 'PR Returned'), 
+        # ('pr return', 'PR Returned'),
     department_id = fields.Many2one(
         'hr.department',
         string="Department",
         required=False,
-        default=lambda self: self.env.user.employee_id.department_id
+        default=lambda self: self.env.user.employee_id.department_id,
+        tracking=True,
     )
-    is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True)
+    is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True, tracking=True)
     department_manager_ids = fields.Many2many(
         'res.users',
         'po_department_manager_rel',   # table name
         'order_id',                   # this model column
         'user_id',                    # comodel column
         string="Department Managers",
-        readonly=True
+        readonly=True,
+        tracking=True,
     )
 
     department_manager_approved_ids = fields.Many2many(
@@ -38,29 +40,34 @@ class PurchaseOrder(models.Model):
         'user_id',
         string="Manager Approvals",
         copy=False,
-        readonly=True
+        readonly=True,
+        tracking=True,
     )
     can_upload_bill = fields.Boolean(
         string="Can Upload Bill",
         default=True,
         # compute="_compute_can_upload_bill",
+        tracking=True,
     )
 
     reason = fields.Html(
-        string="Reason"
+        string="Reason",
+        tracking=True,
     )
-    
+
     approval_request_id = fields.Many2one(
         comodel_name="approval.request",
         string="Approval Request",
         readonly=True,
         copy=False,
         index=True,
+        tracking=True,
     )
 
     approval_request_count = fields.Integer(
         string="Approval Request Count",
         compute="_compute_approval_request_count",
+        tracking=True,
     )
 
     def _compute_approval_request_count(self):
@@ -96,7 +103,7 @@ class PurchaseOrder(models.Model):
     def _get_department_managers(self):
         self.ensure_one()
         return self.order_line.mapped('department_id.manager_id.user_id').filtered(lambda u: u)
-    
+
     def action_approve(self):
         self.ensure_one()
         if self.env.user not in self.department_manager_ids:
@@ -110,7 +117,7 @@ class PurchaseOrder(models.Model):
             ('res_model', '=', 'purchase.order')
         ])
         activities.action_done()
-    
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -137,7 +144,7 @@ class PurchaseOrder(models.Model):
                     vals = dict(vals, currency_id=currency_id)
                     break
         return super().write(vals)
-    
+
     def action_button_next_level(self):
         res = super().action_button_next_level()
 
@@ -166,7 +173,7 @@ class PurchaseOrder(models.Model):
                 self.env['mail.activity'].create(activities_vals)
 
         return res
-        
+
     def action_button_prev_level(self):
         self.ensure_one()
         if not self.approval_group_id:
@@ -201,13 +208,13 @@ class PurchaseOrder(models.Model):
                 'default_approval_level_id': approval_level.id,
             }
         }
-    
+
     def button_draft(self):
         res = super().button_draft()
         for rec in self:
             rec.current_approval_level_id = None
         return res
-        
+
     def button_confirm(self):
         for order in self:
             # budget logic per line
@@ -216,12 +223,12 @@ class PurchaseOrder(models.Model):
                     raise UserError(_(
                         "Please set an analytic account for department '%s'."
                     ) % (line.department_id.name or 'Unknown'))
-                
+
                 if not line.product_id.analytic_gl_id:
                     raise UserError(_(
                         "Please set analytic GL for this product '%s'."
                     )% (line.product_id.analytic_gl_id))
-                
+
                 # lines = self.env['budget.line'].sudo().search([
                 #     ('account_id', '=', line.department_id.analytic_account_id.id),
                 #     ('x_plan6_id', '=', line.department_id.analytic_city_id.id),
@@ -238,7 +245,7 @@ class PurchaseOrder(models.Model):
                 if not ac or not ac.budget_analytic_id:
                     raise UserError(_("No budget configuration found for the analytic account '%s'.") % line.department_id.analytic_account_id.name)
                 configuration = ac.budget_analytic_id.sudo().configuration
-                
+
                 if configuration == 'restrict':
                     if ac.budget_amount < line.price_subtotal:
                         raise ValidationError(_(
@@ -268,7 +275,7 @@ class PurchaseOrder(models.Model):
                         }
                 elif configuration == 'allow':
                     continue
-                
+
             ctx = dict(self.env.context)
             if order.state == 'draft':
                 ctx.update({'skip_budget_check': True})
@@ -280,21 +287,21 @@ class PurchaseOrder(models.Model):
             order.is_sent_back = False
             order.button_lock()
         return super(PurchaseOrder, self.with_context(ctx)).button_confirm() #type:ignore
-    
+
     def button_approve(self):
         if self.env.context.get('skip_budget_check'):
             return super().button_approve()
-        
+
         for order in self:
             if (order.is_sent_back and order.department_manager_ids and order.order_line.filtered(lambda l: l.amount_to_change)):
                 if set(order.department_manager_ids.ids) != set(order.department_manager_approved_ids.ids):
                     raise UserError(_("All department managers must approve first."))
-            order.is_sent_back = False    
+            order.is_sent_back = False
         return super().button_approve()
 
     def action_return_to_pr(self):
         self.ensure_one()
-        
+
         for record in self:
             record.message_post(
                 body=f"PR {record.origin} is been returned back to the department manager for changes {record.name} is set to cancel state",
@@ -302,7 +309,7 @@ class PurchaseOrder(models.Model):
                 subtype_xmlid="mail.mt_note",
             )
             record.button_cancel()
-        
+
         if self.origin:
             approval_req = self.env['approval.request'].sudo().search([('name','=',self.origin)], limit=1)
             if not approval_req:
@@ -314,7 +321,7 @@ class PurchaseOrder(models.Model):
             approval_req.action_draft()
         else:
             raise UserError(f"No Source(PR) is found on this Purchase Order \n this Purchase Order {self.name} must be created without Purchase Request module directly from Purchase Order module.")
-        
+
         activity_type = self.env.ref('mail.mail_activity_data_todo')
         model_id = self.env['ir.model']._get('approval.request').id
         owner_user = approval_req.create_uid
@@ -328,4 +335,4 @@ class PurchaseOrder(models.Model):
             'res_id': approval_req.id,
             'res_model_id': model_id,
         })
-        
+

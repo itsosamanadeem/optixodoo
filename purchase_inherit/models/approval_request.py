@@ -10,12 +10,12 @@ _logger = logging.getLogger(__name__)
 class ApprovalForm(models.Model):
     _inherit = 'approval.request'
 
-    amount = fields.Float( string="Amount",compute="_compute_amount",readonly=True, store=True)
+    amount = fields.Float( string="Amount",compute="_compute_amount",readonly=True, store=True, tracking=True)
     request_type = fields.Selection([
         ('pr', 'Purchase Request'),
         ('ir', 'Internal Request'),
-        ], default='pr', required=True, index=True)
-    
+        ], default='pr', required=True, index=True, tracking=True)
+
     request_status = fields.Selection([
         ('new', 'To Submit'),
         ('pending', 'Submitted'),
@@ -28,11 +28,12 @@ class ApprovalForm(models.Model):
     ], default="new", compute="_compute_request_status",
         store=True, index=True, tracking=True,
         group_expand=True)
-    
+
     stock_picking_id = fields.Many2one('stock.picking', string="Internal Transfer", readonly=True, copy=False, index=True, tracking=True)
     stock_picking_count = fields.Integer(
         string="Internal Transfer Count",
         compute="_compute_stock_picking_count",
+        tracking=True,
     )
 
     project_id = fields.Many2one(
@@ -146,7 +147,7 @@ class ApprovalForm(models.Model):
                     created_transfer_count += 1
                 request.sudo().write({'request_status': 'internal_transfer_created', 'stock_picking_id': picking.id})
         return created_transfer_count
-    
+
     @api.depends('product_line_ids', 'product_line_ids.manager_refused', 'request_status')
     def _compute_amount(self):
         for rec in self:
@@ -166,7 +167,7 @@ class ApprovalForm(models.Model):
                 continue
             next_sequence = min(waiting.mapped('sequence'))
             waiting.filtered(lambda a: a.sequence == next_sequence).write({'status': 'pending'})
-            
+
     def action_confirm(self):
         skip_city_check = self.env.context.get('skip_city_check')
         for request in self:
@@ -222,7 +223,7 @@ class ApprovalForm(models.Model):
                 })
             if not request.approver_ids:
                 raise UserError(_("You must have at least one approver before confirming."))
-            
+
         return super().action_confirm()
 
     def action_create_purchase_orders(self):
@@ -235,7 +236,7 @@ class ApprovalForm(models.Model):
         if self.env.user.has_group('purchase_inherit.group_scm_user'):
             for rec in self:
                 rec._mark_scm_activities_done()
-                
+
         return res
 
     def action_draft(self):
@@ -262,7 +263,7 @@ class ApprovalForm(models.Model):
             })
             request._compute_amount()
         return super(ApprovalForm, self.sudo()).action_draft()
-    
+
     # def action_cancel(self):
     #     # for request in self:
     #     #     owner_user = False
@@ -281,7 +282,7 @@ class ApprovalForm(models.Model):
     #     #         raise UserError(_("Only the requester or an Approval Manager can cancel this request."))
 
     #     return super(ApprovalForm, self.sudo()).action_cancel()
-    
+
     def action_approve(self, approver=None):
         if not isinstance(approver, models.BaseModel):
             approver = self._get_current_user_approver()
@@ -299,7 +300,7 @@ class ApprovalForm(models.Model):
         for approval in self:
             approver = approval._get_current_user_approver()
             approval.user_status = approver.status if approver else False
-    
+
     def _create_purchase_orders(self):
         sudo_self = self.sudo()
         sudo_self.product_line_ids._check_products_vendor()
@@ -443,8 +444,8 @@ class ApprovalForm(models.Model):
         if not isinstance(approver, models.BaseModel):
             approver = self._get_current_user_approver()
         return super().action_withdraw(approver=approver)
-    
-    def _create_activity(self):        
+
+    def _create_activity(self):
         scm_group = self.env.ref('purchase_inherit.group_scm_user')
         scm_users = scm_group.user_ids
         activity_type = self.env.ref('mail.mail_activity_data_todo')
@@ -500,7 +501,7 @@ class ApprovalForm(models.Model):
     #                 })
     #             if mail_values:
     #                 self.env['mail.mail'].sudo().create(mail_values)
-    
+
     def _mark_scm_activities_done(self):
         scm_group = self.env.ref('purchase_inherit.group_scm_user')
         scm_user_ids = scm_group.users.ids

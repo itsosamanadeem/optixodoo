@@ -3,19 +3,20 @@ from odoo.exceptions import UserError, ValidationError #type:ignore
 from odoo.tools.float_utils import float_compare #type:ignore
 
 class PurchaseOrderLine(models.Model):
-    _inherit = "purchase.order.line"
+    _inherit = ["purchase.order.line",'mail.thread', 'mail.activity.mixin']
 
     @staticmethod
     def _distribution_key(*analytic_ids):
         valid_ids = [str(analytic_id) for analytic_id in analytic_ids if analytic_id]
         return ",".join(valid_ids) if valid_ids else False
-    
+
     department_id = fields.Many2one(
         'hr.department',
         string="Departments",
         required=False,
+        tracking=True,
     )
-    
+
     # def write(self, vals):
     #     if not self.order_id.is_sent_back:
     #         raise UserError("Cannot modify sent-back orders.")
@@ -48,8 +49,8 @@ class PurchaseOrderLine(models.Model):
             if key:
                 rec.analytic_distribution = {key: 100}
 
-    amount_to_change = fields.Float(string="Amount to Change", store=True)
-            
+    amount_to_change = fields.Float(string="Amount to Change", store=True, tracking=True)
+
     @api.onchange('product_id', 'product_qty', 'amount_to_change')
     def _change_price_unit(self):
         for rec in self:

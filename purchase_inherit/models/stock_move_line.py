@@ -1,10 +1,11 @@
 from odoo import models, fields, api, _ #type: ignore
 
 class StockMoveLine(models.Model):
-    _inherit = "stock.move.line"
+    _inherit = ["stock.move.line",'mail.thread', 'mail.activity.mixin']
 
     serial_no = fields.Char(
         string="Serial Number",
+        tracking=True,
     )
 
     # @api.depends("product_id")

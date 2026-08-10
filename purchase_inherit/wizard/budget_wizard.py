@@ -4,8 +4,8 @@ class BudgetWarningWizard(models.TransientModel):
     _name = 'budget.warning.wizard'
     _description = 'Budget Warning Wizard'
 
-    order_id = fields.Many2one('purchase.order')
-    message = fields.Text()
+    order_id = fields.Many2one('purchase.order', tracking=True)
+    message = fields.Text(tracking=True)
 
     def action_proceed(self):
         self.ensure_one()
