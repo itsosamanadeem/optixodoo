@@ -3,7 +3,7 @@
         <field name="name">Employee RFQ Access</field>
         <field name="model_id" ref="purchase_inherit.model_purchase_order"/>
         <field name="domain_force">
-            ['&amp;',
+            [
                 ('revenue_share', '=', False),
                 '|',
                     ('create_uid', '=', user.id),
@@ -20,8 +20,7 @@
         <field name="name">Manager Department RFQ Access</field>
         <field name="model_id" ref="purchase_inherit.model_purchase_order"/>
         <field name="domain_force">
-            ['&amp;',
-                ('revenue_share', '=', False),
+            [
                 '|',
                     ('department_id.manager_id.user_id', '=', user.id),
                     ('order_line', 'any', [('department_id.manager_id.user_id', '=', user.id)])
