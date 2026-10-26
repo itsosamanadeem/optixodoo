@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_inherit_asset_tag_no" model="ir.ui.view">
+        <field name="name">stock.picking.form.inherit.asset.tag.no</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form//field[@name='user_id']" position="after">
+                <field name="product_default_code" readonly="1"/>
+                <field name="asset_tag_no" readonly="1"/>
+            </xpath>
+            <xpath expr="/form/sheet/group/group/div/label[@for='partner_id']" position="attributes">
+                <attribute name="string">Customer</attribute>
+            </xpath>
+            <xpath expr="/form/sheet/group/group/field[@name='partner_id']" position="attributes">
+                <attribute name="domain">[('customer_rank', '&gt;', 0)] if picking_type_code == 'outgoing' else []</attribute>
+            </xpath>
+            <xpath expr="/form/sheet/group/group/field[@name='partner_id']" position="after">
+                <field name="customer_cnic_number" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

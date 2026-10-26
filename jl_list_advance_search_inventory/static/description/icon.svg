@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" fill="none">
+    <!-- Base card -->
+    <rect x="10" y="50" width="1004" height="1004" rx="120" fill="none"/>
+
+    <!-- Header -->
+    <rect x="10" y="50" width="1004" height="180" rx="100" fill="#875A7B"/>
+    <rect x="108" y="118" width="196" height="46" rx="23" fill="#F86126"/>
+    <rect x="348" y="118" width="152" height="46" rx="23" fill="#962B48"/>
+
+    <!-- List rows -->
+    <rect x="108" y="344" width="480" height="54" rx="27" fill="#FBB945"/>
+    <rect x="108" y="475" width="404" height="54" rx="27" fill="#FC868B"/>
+    <rect x="108" y="606" width="447" height="54" rx="27" fill="#F86126"/>
+    <rect x="108" y="737" width="349" height="54" rx="27" fill="#962B48"/>
+
+    <!-- Search icon -->
+    <circle cx="776" cy="606" r="142" fill="none" stroke="#962B48" stroke-width="49"/>
+    <line x1="887" y1="717" x2="982" y2="812" stroke="#962B48" stroke-width="54" stroke-linecap="round"/>
+
+    <!-- SALE (angled, magnifier-like size, top-right) -->
+    <text x="786" y="306" text-anchor="middle" font-family="Arial, sans-serif" font-size="120" font-weight="700" fill="#F86126" transform="rotate(35 806 200)">INVENTORY</text>
+</svg>

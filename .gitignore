@@ -1,0 +1,8 @@
+.vscode
+__pycache__/
+*.pyc
+*.pyo
+.codex
+.agents
+v.1.0.1.zip
+el_purchase_analytic_distribution-19.0.1.0.zip

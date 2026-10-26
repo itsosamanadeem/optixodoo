@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Purchase Control Hub</title>
+  <desc id="desc">Odoo procurement controls with approvals, budgets, and serial import.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f3d56"/>
+      <stop offset="100%" stop-color="#14866d"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <circle cx="1080" cy="120" r="180" fill="#ffffff" opacity="0.05"/>
+  <circle cx="160" cy="620" r="220" fill="#ffffff" opacity="0.04"/>
+  <rect x="70" y="70" width="1140" height="580" rx="28" fill="url(#card)" stroke="#ffffff" stroke-opacity="0.18"/>
+  <text x="120" y="190" fill="#d9fff0" font-family="Arial, sans-serif" font-size="26" font-weight="700">ODOO PROCUREMENT SUITE</text>
+  <text x="120" y="285" fill="#ffffff" font-family="Arial, sans-serif" font-size="68" font-weight="700">Purchase Control Hub</text>
+  <text x="120" y="350" fill="#e7fff7" font-family="Arial, sans-serif" font-size="30">Approvals, budget checks, analytics, and serial import</text>
+
+  <rect x="120" y="430" width="250" height="88" rx="18" fill="#ffffff" fill-opacity="0.14"/>
+  <rect x="395" y="430" width="250" height="88" rx="18" fill="#ffffff" fill-opacity="0.14"/>
+  <rect x="670" y="430" width="250" height="88" rx="18" fill="#ffffff" fill-opacity="0.14"/>
+  <rect x="945" y="430" width="190" height="88" rx="18" fill="#ffffff" fill-opacity="0.14"/>
+
+  <text x="155" y="483" fill="#ffffff" font-family="Arial, sans-serif" font-size="26" font-weight="700">Approval Flow</text>
+  <text x="432" y="483" fill="#ffffff" font-family="Arial, sans-serif" font-size="26" font-weight="700">Budget Control</text>
+  <text x="713" y="483" fill="#ffffff" font-family="Arial, sans-serif" font-size="26" font-weight="700">Serial Import</text>
+  <text x="1001" y="483" fill="#ffffff" font-family="Arial, sans-serif" font-size="26" font-weight="700">Analytics</text>
+
+  <text x="120" y="595" fill="#d2f8ea" font-family="Arial, sans-serif" font-size="24">Built for department-driven procurement processes in Odoo 19</text>
+</svg>

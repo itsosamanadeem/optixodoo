@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+
+    <t t-inherit="stock.StockListRenderer" t-inherit-mode="extension">
+        <xpath expr="//table/thead" position="inside">
+            <t t-call="jl_list_advance_search.ListAdvancedFilterRow"/>
+        </xpath>
+    </t>
+</templates>

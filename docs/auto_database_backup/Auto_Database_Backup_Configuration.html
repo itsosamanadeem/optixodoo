@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Automatic Database Backup Configuration</title><style>@page {size:A4; margin:18mm;} body {font-family:Arial,sans-serif; font-size:9pt; color:#243447;} h1 {font-size:24pt; color:#124568;} h2 {font-size:15pt; color:#124568;} p {margin:6px 0;line-height:1.15;} li {line-height:1.15;margin-bottom:5px;} td p {margin:0;} .meta {color:#607080;font-size:9pt;} table {border-collapse:collapse; width:100%;} th,td {border:1px solid #ccd6df;padding:3px;text-align:left;} th {background:#e9f1f6;} .page {break-before:page;page-break-before:always;} img {width:650px;height:366px;} code {font-family:monospace;} </style></head><body>
+<p class="meta">OPTIX PAKISTAN PRIVATE LIMITED | ODOO 19 | VERSION 1.1 | UPDATED 07 OCTOBER 2026</p>
+<h1>Automatic Database Backup</h1><h2>Live DB Backup — Configuration Record</h2>
+<p>This document records the <b>auto_database_backup</b> configuration shown in the supplied screenshot. The live database is configured for daily ZIP backups to an SFTP server, with automated cleanup after two days and notifications to Administrator.</p>
+<table width="100%" cellpadding="3" cellspacing="0"><tr><th>Setting</th><th>Configured value</th></tr><tr><td>Configuration name</td><td>Live DB Backup</td></tr><tr><td>Database name</td><td>Live_30_May_2026</td></tr><tr><td>Master password</td><td>Configured; masked in the screenshot</td></tr><tr><td>Backup format</td><td>Zip</td></tr><tr><td>Active</td><td>Enabled</td></tr><tr><td>Backup destination</td><td>SFTP</td></tr><tr><td>Backup frequency</td><td>Daily</td></tr><tr><td>SFTP host</td><td>192.168.171.83</td></tr><tr><td>SFTP port</td><td>1051</td></tr><tr><td>SFTP user</td><td>optix</td></tr><tr><td>SFTP password</td><td>Configured; masked in the screenshot</td></tr><tr><td>SFTP path</td><td>/home/optix/backup</td></tr><tr><td>Remove old backups</td><td>Enabled</td></tr><tr><td>Remove after</td><td>2 days</td></tr><tr><td>Notify user</td><td>Enabled</td></tr><tr><td>Notification user</td><td>Administrator</td></tr></table>
+<p class="meta">Configuration evidence: screenshot captured on 06 October 2026. Password values are not included in this document. These settings do not establish that the connection or a backup run has succeeded.</p>
+<h1 style="page-break-before:always">Operation and Verification</h1>
+<h2>Backup process</h2><ol>
+<li>The scheduled action <b>Backup : Daily Database Backup</b> invokes the module once per day for configurations with Daily frequency. The actual execution time must be checked in the live scheduled action; it is not shown in the screenshot.</li>
+<li>The module creates a ZIP archive containing the PostgreSQL database dump, a manifest, and the database filestore when that filestore exists.</li>
+<li>The archive is uploaded to <code>/home/optix/backup</code> on <code>192.168.171.83:1051</code> using the SFTP account <code>optix</code>.</li>
+<li>After upload, automated cleanup removes remote files whose modification age is at least two whole days. The module then attempts to send a success notification; exceptions trigger an attempted failure notification.</li></ol>
+<p>Archive names follow <code>Live_30_May_2026_YYYY-MM-DD_HH-MM-SS.zip</code>. The timestamp in the filename is generated in UTC. Retention is age based; it does not guarantee that exactly two backup files remain.</p>
+<h2>Administrator checklist</h2><ol>
+<li>Open the Live DB Backup record under Settings / Technical / Automatic Database Backup and verify the values on page 1. The screenshot shows an out-of-date page notice; save any intended edits and refresh before verifying the current record.</li>
+<li>Use <b>Test Connection</b> to check SFTP login. This checks authentication and SFTP access, but does not verify that the destination directory is writable or that a database archive can be generated.</li>
+<li>Check that the daily scheduled action is active and review its next execution time. After a scheduled run, verify a recent ZIP exists in the remote directory and has a plausible size.</li>
+<li>Confirm notification delivery to Administrator and check the configured email address and outgoing mail setup if messages are absent.</li>
+<li>Periodically restore a downloaded backup into an isolated test database and verify database records and attachments.</li></ol>
+<h2>Retention and troubleshooting</h2>
+<p>Use a dedicated backup directory: the SFTP cleanup code evaluates all entries in the configured directory without filtering by database name or filename extension. Do not mix unrelated files into this path.</p>
+<p>For connection failures, check network reachability, port 1051 and credentials. For upload failures, check directory permissions and free space. For dump failures, review Odoo logs and PostgreSQL dump access. For missing attachments, verify the source filestore and the restored archive.</p>
+<h1 style="page-break-before:always">Configuration Evidence</h1>
+<p>The original screenshot below is supplied as the configuration reference. Both password fields are masked.</p>
+<img src="configuration_screenshot.png" width="650" height="366">
+<h2>Evidence and scope</h2><p>The screenshot shows the configuration record, but no successful connection test, backup archive, notification, scheduled execution time or restore result. The additional evidence on the following pages shows backup-related log generation and a stored ZIP archive. Notification delivery, cleanup execution and restoration remain unverified.</p>
+<p>Process details were checked against the local module files <code>auto_database_backup/models/db_backup_configure.py</code> and <code>auto_database_backup/data/ir_cron_data.xml</code>. Live deployment behavior depends on the installed code and its scheduled action settings.</p>
+
+<h1 style="page-break-before:always">Backup Execution Logs</h1>
+<p>The Portainer container log screenshot captured on <b>06 October 2026</b> shows that backup-related logs are being generated for <code>Live_30_May_2026</code>.</p>
+<img src="backup_execution_logs.png" width="650" height="366">
+<h2>Observed log entries</h2>
+<table width="100%" cellpadding="3" cellspacing="0">
+<tr><th>Log timestamp — 06 October 2026</th><th>Observed event</th></tr>
+<tr><td>10:41:38,861</td><td>Job 'Backup : Daily Database Backup' (49) starting</td></tr>
+<tr><td>10:41:38,957</td><td>SSH connection established (OpenSSH_9.6p1)</td></tr>
+<tr><td>10:41:39,191</td><td>Authentication (password) successful!</td></tr>
+<tr><td>10:41:39,323</td><td>Opened SFTP connection (server version 3)</td></tr>
+<tr><td>10:41:39,329</td><td>DUMP DB: Live_30_May_2026 format zip</td></tr>
+</table>
+<p>The visible entries establish that the daily backup job started, SFTP authentication succeeded and ZIP database dumping began. A completion message is not visible in this excerpt. Log timestamps are reproduced as displayed; the screenshot does not specify their timezone.</p>
+<p>The log excerpt starts at 10:41, whereas the archive on the next page is named 10:38:01. These screenshots document log activity and archive availability separately; they do not establish that both belong to the same execution.</p>
+<h1 style="page-break-before:always">Latest Backup on Staging</h1>
+<p>The terminal screenshot captured on <b>06 October 2026</b> shows a ZIP backup stored on the Optix server. The latest archive visible in the supplied listing is:</p>
+<p><code>Live_30_May_2026_2026-10-06_10-38-01.zip</code></p>
+<img src="staging_backup_listing.png" width="650" height="366">
+<h2>Archive and storage record</h2>
+<table width="100%" cellpadding="3" cellspacing="0">
+<tr><th>Item</th><th>Recorded detail</th></tr>
+<tr><td>Latest archive shown</td><td>Live_30_May_2026_2026-10-06_10-38-01.zip</td></tr>
+<tr><td>File size shown</td><td>312,606,720 bytes (approximately 298.1 MiB)</td></tr>
+<tr><td>Owner / group</td><td>optix / optix</td></tr>
+<tr><td>Modification time shown</td><td>06 October, 10:39 (terminal timezone not specified)</td></tr>
+<tr><td>Directory shown in terminal</td><td>/home/optix/backup (prompt: optix@optix:~/backup)</td></tr>
+<tr><td>Additional staging location</td><td>/home/optix/database — latest backup also stored here, as confirmed by the administrator</td></tr>
+</table>
+<p>The configured SFTP destination and terminal listing refer to <code>/home/optix/backup</code>. The administrator reports that the latest backup is also in <code>/home/optix/database</code> on the Optix staging server; that additional directory is not shown in the screenshot.</p>
+<p>The listing demonstrates archive presence and a non-zero file size. It also contains older archives despite the configured two-day retention; this evidence does not confirm cleanup execution or archive restorability. “Latest” refers to the supplied 06 October listing.</p>
+</body></html>

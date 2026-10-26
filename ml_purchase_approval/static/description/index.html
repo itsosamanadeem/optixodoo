@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Purchase Approval Flow</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f6f7fb;
+            color: #243447;
+        }
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 16px 48px;
+        }
+        .hero,
+        .section,
+        .feature,
+        .step,
+        .shot {
+            background: #ffffff;
+            border: 1px solid #dde3ea;
+            border-radius: 12px;
+        }
+        .hero {
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+        .hero h1 {
+            margin: 0 0 12px;
+            font-size: 34px;
+            color: #0f172a;
+        }
+        .hero p {
+            margin: 0;
+            font-size: 17px;
+            line-height: 1.7;
+        }
+        .section {
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .section h2 {
+            margin: 0 0 12px;
+            font-size: 24px;
+            color: #0f172a;
+        }
+        .section p,
+        .section li {
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .feature,
+        .step {
+            padding: 20px;
+        }
+        .feature h3,
+        .step h3,
+        .shot h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            color: #111827;
+        }
+        .feature p,
+        .step p,
+        .shot p {
+            margin: 0;
+        }
+        .shot {
+            overflow: hidden;
+        }
+        .shot img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-bottom: 1px solid #dde3ea;
+        }
+        .shot .content {
+            padding: 16px;
+        }
+        .badge-row {
+            margin-top: 16px;
+        }
+        .badge {
+            display: inline-block;
+            margin: 0 8px 8px 0;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #e8eefc;
+            color: #2447a5;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .support {
+            margin-top: 8px;
+        }
+        .support a {
+            color: #2447a5;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="hero">
+            <h1>Purchase Approval Flow</h1>
+            <p>
+                Add a structured approval chain to Odoo purchase orders with configurable groups,
+                amount-based levels, recommendation steps, approval actions, and full history tracking.
+            </p>
+            <div class="badge-row">
+                <span class="badge">Odoo 19</span>
+                <span class="badge">Purchase</span>
+                <span class="badge">Multi-Level Approval</span>
+                <span class="badge">Audit Trail</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Key Features</h2>
+            <div class="grid">
+                <div class="feature">
+                    <h3>Approval Groups</h3>
+                    <p>Create separate approval policies for different teams, departments, or purchasing scenarios.</p>
+                </div>
+                <div class="feature">
+                    <h3>Amount-Based Levels</h3>
+                    <p>Define minimum and maximum amounts for each level so purchase orders route automatically.</p>
+                </div>
+                <div class="feature">
+                    <h3>Recommendation and Approval</h3>
+                    <p>Mix recommendation stages and final approval stages in the same purchase workflow.</p>
+                </div>
+                <div class="feature">
+                    <h3>User Assignment</h3>
+                    <p>Assign specific users to each approval level and display actions only to eligible approvers.</p>
+                </div>
+                <div class="feature">
+                    <h3>Return with Comments</h3>
+                    <p>Send a purchase order back for correction with a clear comment for the requester.</p>
+                </div>
+                <div class="feature">
+                    <h3>Approval History</h3>
+                    <p>Track requests, recommendations, approvals, returns, comments, and timestamps on each order.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>How It Works</h2>
+            <div class="grid">
+                <div class="step">
+                    <h3>1. Configure Groups</h3>
+                    <p>Create an approval group and define the levels, thresholds, and users responsible for each stage.</p>
+                </div>
+                <div class="step">
+                    <h3>2. Assign on Purchase Order</h3>
+                    <p>Select the approval group on a purchase order before sending it into the approval process.</p>
+                </div>
+                <div class="step">
+                    <h3>3. Route by Amount</h3>
+                    <p>The order moves through the configured chain according to its total amount and current step.</p>
+                </div>
+                <div class="step">
+                    <h3>4. Keep a Full Audit Trail</h3>
+                    <p>Every request, comment, return, recommendation, and approval is recorded on the order.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Screenshots</h2>
+            <div class="grid">
+                <div class="shot">
+                    <img src="assets/screenshots/1.png" alt="Approval group configuration">
+                    <div class="content">
+                        <h3>Approval group configuration</h3>
+                        <p>Set up approval groups with multiple levels, user assignments, and amount ranges.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/2_screenshot.png" alt="Purchase order with approval details">
+                    <div class="content">
+                        <h3>Purchase order approval details</h3>
+                        <p>View the selected approval group, current level, and pending approver directly on the order.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/3.png" alt="Recommendation action on purchase order">
+                    <div class="content">
+                        <h3>Recommendation stage</h3>
+                        <p>Authorized users can recommend or return the purchase order from the approval step.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/4.png" alt="Comment wizard for recommendation or return">
+                    <div class="content">
+                        <h3>Comment wizard</h3>
+                        <p>Capture comments when recommending or returning a purchase order for better communication.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/5.png" alt="Approval history on purchase order">
+                    <div class="content">
+                        <h3>Approval history</h3>
+                        <p>Review the full sequence of actions, users, notes, and timestamps in one place.</p>
+                    </div>
+                </div>
+                <div class="shot">
+                    <img src="assets/screenshots/6.png" alt="Approval action for authorized user">
+                    <div class="content">
+                        <h3>Final approval action</h3>
+                        <p>Display the approval action only when the current user and order amount match the configured level.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Support</h2>
+            <p>This module depends on the standard Odoo Purchase application.</p>
+            <p class="support">Support: <a href="mailto:support@zalinotech.com">support@zalinotech.com</a></p>
+        </div>
+    </div>
+</body>
+</html>

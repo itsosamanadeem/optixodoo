@@ -1,0 +1,26 @@
+<odoo>
+    <record id="view_account_payment_register_form_inherit" model="ir.ui.view">
+        <field name="name">account.payment.register.form.inherit</field>
+        <field name="model">account.payment.register</field>
+        <field name="inherit_id" ref="account.view_account_payment_register_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='amount']" position="attributes"><attribute name="readonly">optix_tax_payment</attribute></xpath>
+            <xpath expr="/form//group[@name='group2']" position="after">
+                <group invisible="payment_type != 'outbound' or partner_type != 'supplier'">
+                    <field name="optix_tax_payment"/>
+                    <field name="optix_gross_amount" invisible="not optix_tax_payment"/>
+                    <field name="total_taxed_amount" invisible="not optix_tax_payment"/>
+                </group>
+                <field name="income_tax_ids" invisible="not optix_tax_payment">
+                    <list editable="bottom">
+                        <field name="company_id" column_invisible="True"/><field name="currency_id" column_invisible="True"/>
+                        <field name="tax_id" options="{'no_create': True}"/><field name="category"/>
+                        <field name="use_gross"/><field name="manual_base" readonly="use_gross"/>
+                        <field name="base_amount"/><field name="rate"/><field name="effective_rate" optional="hide"/>
+                        <field name="amount"/><field name="account_id"/>
+                    </list>
+                </field>
+            </xpath>
+        </field>
+    </record>
+</odoo>

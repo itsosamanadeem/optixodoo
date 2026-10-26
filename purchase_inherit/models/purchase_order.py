@@ -1,0 +1,354 @@
+from re import match
+from odoo import models, fields, api, _ #type: ignore
+from odoo.exceptions import UserError, ValidationError #type: ignore
+from odoo.tools.float_utils import float_compare #type: ignore
+
+class PurchaseOrder(models.Model):
+    _name="purchase.order"
+    _inherit = ["purchase.order",'mail.thread', 'mail.activity.mixin']
+
+    state = fields.Selection([
+        ('draft', 'RFQ'),
+        ('sent', 'RFQ Sent'),
+        ('to approve', 'To Approve'),
+        ('purchase', 'Purchase Order'),
+        ('cancel', 'Cancelled')
+    ], string='Status', readonly=True, index=True, copy=False, default='draft', tracking=True)
+    
+    revenue_share = fields.Boolean(string="Revenue Share", default=False, tracking=True)
+        
+    department_id = fields.Many2one(
+        'hr.department',
+        string="Department",
+        required=False,
+        default=lambda self: self.env.user.employee_id.department_id,
+        tracking=True,
+    )
+    is_sent_back = fields.Boolean(string="Sent Back", default=False, readonly=True, tracking=True)
+    department_manager_ids = fields.Many2many(
+        'res.users',
+        'po_department_manager_rel',   # table name
+        'order_id',                   # this model column
+        'user_id',                    # comodel column
+        string="Department Managers",
+        readonly=True,
+        tracking=True,
+    )
+
+    department_manager_approved_ids = fields.Many2many(
+        'res.users',
+        'po_department_manager_approved_rel',  # DIFFERENT table
+        'order_id',
+        'user_id',
+        string="Manager Approvals",
+        copy=False,
+        readonly=True,
+        tracking=True,
+    )
+    can_upload_bill = fields.Boolean(
+        string="Can Upload Bill",
+        default=True,
+        # compute="_compute_can_upload_bill",
+        tracking=True,
+    )
+
+    reason = fields.Html(
+        string="Reason",
+        tracking=True,
+    )
+
+    approval_request_id = fields.Many2one(
+        comodel_name="approval.request",
+        string="Approval Request",
+        readonly=True,
+        copy=False,
+        index=True,
+        tracking=True,
+    )
+
+    approval_request_count = fields.Integer(
+        string="Approval Request Count",
+        compute="_compute_approval_request_count",
+        tracking=True,
+    )
+
+    def _compute_approval_request_count(self):
+        for order in self:
+            order.approval_request_count = (
+                1 if order.approval_request_id else 0
+            )
+
+    def action_view_approval_request(self):
+        self.ensure_one()
+
+        if not self.approval_request_id:
+            raise UserError(
+                _("No Approval Request is linked to this Purchase Order.")
+            )
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Approval Request"),
+            "res_model": "approval.request",
+            "view_mode": "form",
+            "res_id": self.approval_request_id.id,
+            "target": "current",
+        }
+    # @api.depends('order_line.qty_received')
+    # def _compute_can_upload_bill(self):
+    #     for order in self:
+    #         if order.product_id.type == 'service':
+    #             order.can_upload_bill = True
+    #         else:
+    #             order.can_upload_bill = any((line.qty_received or 0.0) > 0 for line in order.order_line)
+
+    def _get_department_managers(self):
+        self.ensure_one()
+        return self.order_line.mapped('department_id.manager_id.user_id').filtered(lambda u: u)
+
+    def action_approve(self):
+        self.ensure_one()
+        if self.env.user not in self.department_manager_ids:
+            raise UserError("You are not allowed to approve this.")
+        self.sudo().write({
+            'department_manager_approved_ids': [(4, self.env.user.id)]
+        })
+        activities = self.env['mail.activity'].sudo().search([
+            ('res_id', '=', self.id),
+            ('user_id', '=', self.env.user.id),
+            ('res_model', '=', 'purchase.order')
+        ])
+        activities.action_done()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get('currency_id'):
+                company_id = vals.get('company_id') or self.env.company.id
+                company = self.env['res.company'].browse(company_id)
+                vals['currency_id'] = company.currency_id.id
+
+            if vals.get('name', _('New')) == _('New'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('purchase.rfq') or _('New')
+
+        return super().create(vals_list)
+
+    def write(self, vals):
+        # If a record somehow ends up without currency (or company changes), re-apply a default.
+        if ('currency_id' in vals and not vals.get('currency_id')) or ('company_id' in vals and 'currency_id' not in vals):
+            for order in self:
+                currency_id = vals.get('currency_id')
+                if not currency_id:
+                    company = self.env['res.company'].browse(vals.get('company_id') or order.company_id.id or self.env.company.id)
+                    currency_id = company.currency_id.id
+                # Only set if needed; avoid unnecessary writes.
+                if not vals.get('currency_id') and not order.currency_id:
+                    vals = dict(vals, currency_id=currency_id)
+                    break
+        return super().write(vals)
+
+    def action_button_next_level(self):
+        res = super().action_button_next_level()
+
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+        model_id = self.env['ir.model']._get('purchase.order').id
+
+        for order in self:
+            approval_level = order._get_next_approval_level()
+            if not approval_level:
+                continue
+
+            users = approval_level.user_ids.filtered(lambda u: u)
+
+            activities_vals = []
+            for user in users:
+                activities_vals.append({
+                    'activity_type_id': activity_type.id,
+                    'summary': 'Purchase Order Recommendation Required',
+                    'note': f'Please review and recommend PO {order.name}',
+                    'user_id': user.id,
+                    'res_id': order.id,
+                    'res_model_id': model_id,
+                })
+
+            if activities_vals:
+                self.env['mail.activity'].create(activities_vals)
+
+        return res
+
+    def action_button_prev_level(self):
+        self.ensure_one()
+        if not self.approval_group_id:
+            raise UserError('Please select an approval group first!')
+        approval_level = self._get_prev_approval_level()
+        if not approval_level:
+            raise UserError('Previous Recommendation Level Not Set!')
+        scm_group = self.env.ref('purchase_inherit.group_scm_user')
+        scm_users = scm_group.user_ids
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+        model_id = self.env['ir.model']._get('purchase.order').id
+        activities_vals = []
+        for user in scm_users:
+            activities_vals.append({
+                'activity_type_id': activity_type.id,
+                'summary': 'Purchase Order Returned',
+                'note': f'PO {self.name} requires your review again',
+                'user_id': user.id,
+                'res_id': self.id,
+                'res_model_id': model_id,
+            })
+        if activities_vals:
+            self.env['mail.activity'].create(activities_vals)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Add Comments',
+            'res_model': 'ml.returned.comment.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_purchase_order_id': self.id,
+                'default_approval_level_id': approval_level.id,
+            }
+        }
+
+    def button_draft(self):
+        res = super().button_draft()
+        for rec in self:
+            rec.current_approval_level_id = None
+        return res
+
+    def button_confirm(self):
+        for order in self:
+            # budget logic per line
+            for line in order.order_line:
+                if not line.department_id or not line.department_id.analytic_city_id:
+                    raise UserError(_(
+                        "Please set an analytic account for department '%s'."
+                    ) % (line.department_id.name or 'Unknown'))
+
+                if not line.product_id.analytic_gl_id:
+                    raise UserError(_(
+                        "Please set analytic GL for this product '%s'."
+                    )% (line.product_id.analytic_gl_id))
+                
+                analytic_city_id = False
+
+                if line.analytic_distribution:
+                    analytic_key = next(iter(line.analytic_distribution.keys()), False)
+
+                    if analytic_key:
+                        analytic_ids = [int(x) for x in analytic_key.split(",") if x] #type: ignore
+
+                        if len(analytic_ids) >= 2:
+                            analytic_city_id = analytic_ids[1]
+                if not analytic_city_id:
+                    raise UserError("Analytic city is missing from analytic distribution.")
+                
+                # ad = line.analytic_distribution
+                # lines = self.env['budget.line'].sudo().search([
+                #     ('account_id', '=', line.department_id.analytic_account_id.id),
+                #     ('x_plan6_id', '=', line.department_id.analytic_city_id.id),
+                # ])
+
+                # raise UserError(str(ad))
+                ac = self.env['budget.line'].sudo().search([
+                    ('account_id','=',line.department_id.analytic_account_id.id),
+                    ('x_plan6_id','=',analytic_city_id),
+                    ('x_plan8_id','=',line.product_id.analytic_gl_id.id),
+                    ('budget_analytic_id.state','=','confirmed')
+                ], limit=1)
+                # raise UserError(str(ac))
+                if not ac or not ac.budget_analytic_id:
+                    raise UserError(_("No budget configuration found for the analytic account '%s'.") % line.department_id.analytic_account_id.name)
+                configuration = ac.budget_analytic_id.sudo().configuration
+
+                if configuration == 'restrict':
+                    if ac.budget_amount < line.price_subtotal:
+                        raise ValidationError(_(
+                            "The total amount of the purchase order exceeds the available budget "
+                            "for the department '%s'.") % line.department_id.name)
+                elif configuration == 'warning':
+                    if ac.budget_amount < line.price_subtotal:
+                        return {
+                            'type': 'ir.actions.act_window',
+                            'name': 'Budget Warning',
+                            'res_model': 'budget.warning.wizard',
+                            'view_mode': 'form',
+                            'target': 'new',
+                            'context': {
+                                'default_order_id': order.id,
+                                'default_message': _(
+                                    "Budget exceeded for department '%s'.\n\n"
+                                    "Available Budget: %s\n"
+                                    "PO Amount: %s\n\n"
+                                    "Do you want to proceed?"
+                                ) % (
+                                    line.department_id.name,
+                                    ac.budget_amount,
+                                    order.amount_total
+                                )
+                            }
+                        }
+                elif configuration == 'allow':
+                    continue
+
+            ctx = dict(self.env.context)
+            if order.state == 'draft':
+                ctx.update({'skip_budget_check': True})
+            order = order.with_context(ctx)
+            if not order.order_line:
+                raise UserError(_("Please add at least one line to confirm the purchase order."))
+            if order.name and order.name.startswith('RFQ'):
+                order.name = self.env['ir.sequence'].next_by_code('purchase.order') or order.name
+            order.is_sent_back = False
+            order.button_lock()
+        return super(PurchaseOrder, self.with_context(ctx)).button_confirm() #type:ignore
+
+    def button_approve(self):
+        if self.env.context.get('skip_budget_check'):
+            return super().button_approve()
+
+        for order in self:
+            if (order.is_sent_back and order.department_manager_ids and order.order_line.filtered(lambda l: l.amount_to_change)):
+                if set(order.department_manager_ids.ids) != set(order.department_manager_approved_ids.ids):
+                    raise UserError(_("All department managers must approve first."))
+            order.is_sent_back = False
+        return super().button_approve()
+
+    def action_return_to_pr(self):
+        self.ensure_one()
+
+        for record in self:
+            record.message_post(
+                body=f"PR {record.origin} is been returned back to the department manager for changes {record.name} is set to cancel state",
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
+            record.button_cancel()
+
+        if self.origin:
+            approval_req = self.env['approval.request'].sudo().search([('name','=',self.origin)], limit=1)
+            if not approval_req:
+                raise UserError(
+                    f"No Source(PR) is found with reference {self.origin} for Purchase Order {self.name}."
+                )
+            approval_req.action_withdraw()
+            approval_req.action_cancel()
+            approval_req.action_draft()
+        else:
+            raise UserError(f"No Source(PR) is found on this Purchase Order \n this Purchase Order {self.name} must be created without Purchase Request module directly from Purchase Order module.")
+
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+        model_id = self.env['ir.model']._get('approval.request').id
+        owner_user = approval_req.create_uid
+        if 'request_owner_id' in approval_req._fields and approval_req.request_owner_id:
+            owner_user = approval_req.request_owner_id
+        self.env['mail.activity'].sudo().create({
+            'activity_type_id': activity_type.id,
+            'summary': 'Purchase Request Returned',
+            'note': f'PR {self.origin} requires your review again',
+            'user_id': owner_user.id,
+            'res_id': approval_req.id,
+            'res_model_id': model_id,
+        })
+

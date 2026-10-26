@@ -1,0 +1,25 @@
+<odoo noupdate="1">
+    <record id="crm_customer_sync" model="optix.crm.customer.sync">
+        <field name="name">CRM customer sync</field>
+    </record>
+    <record id="ir_cron_crm_customer_worker" model="ir.cron">
+        <field name="name">CRM Customers: Process Import</field>
+        <field name="model_id" ref="model_optix_crm_customer_sync"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_process()</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+    </record>
+    <record id="ir_cron_crm_customer_nightly" model="ir.cron">
+        <field name="name">CRM Customers: Nightly Sync (02:00 Pakistan)</field>
+        <field name="model_id" ref="model_optix_crm_customer_sync"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_start()</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <!-- 02:00 Asia/Karachi is 21:00 UTC on the previous day. -->
+        <field name="nextcall" eval="(DateTime.utcnow().replace(hour=21, minute=0, second=0) + timedelta(days=1 if DateTime.utcnow().hour &gt;= 21 else 0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+    </record>
+</odoo>

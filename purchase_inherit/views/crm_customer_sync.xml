@@ -1,0 +1,27 @@
+<odoo>
+    <record id="stock_picking_form_crm_sync" model="ir.ui.view">
+        <field name="name">stock.picking.form.crm.sync</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_sync_crm_customers" type="object" string="Sync CRM Customers"
+                        groups="stock.group_stock_user" invisible="picking_type_code != 'outgoing'"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="res_config_settings_crm_sync" model="ir.ui.view">
+        <field name="name">res.config.settings.crm.sync</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="stock.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='stock']" position="inside">
+                <block title="Optix CRM" groups="base.group_system">
+                    <setting string="Customer synchronization" help="Delivery receipts can import CRM customers. Automatic sync runs daily at 02:00 Pakistan time.">
+                        <field name="optix_crm_access_key" password="True"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

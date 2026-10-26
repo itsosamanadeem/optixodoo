@@ -1,0 +1,101 @@
+<odoo>
+    <record id="paper_portrait" model="report.paperformat">
+        <field name="name">Optix Accounting Portrait</field><field name="format">A4</field>
+        <field name="orientation">Portrait</field><field name="margin_top">12</field>
+        <field name="margin_bottom">14</field><field name="margin_left">8</field><field name="margin_right">8</field>
+        <field name="dpi">96</field><field name="header_spacing">3</field>
+    </record>
+    <record id="paper_landscape" model="report.paperformat">
+        <field name="name">Optix Accounting Wide</field><field name="format">A3</field>
+        <field name="orientation">Landscape</field><field name="margin_top">10</field>
+        <field name="margin_bottom">14</field><field name="margin_left">7</field><field name="margin_right">7</field>
+        <field name="dpi">96</field><field name="header_spacing">3</field>
+    </record>
+    <record id="report_portrait" model="ir.actions.report">
+        <field name="name">Optix Accounting Report</field><field name="model">fw.account.report.wizard</field>
+        <field name="report_type">qweb-pdf</field><field name="report_name">fw_account_reports.pdf</field>
+        <field name="paperformat_id" ref="paper_portrait"/>
+        <field name="print_report_name">object.report_type + ' - ' + str(object.date_to)</field>
+    </record>
+    <record id="report_landscape" model="ir.actions.report">
+        <field name="name">Optix Accounting Report (Wide)</field><field name="model">fw.account.report.wizard</field>
+        <field name="report_type">qweb-pdf</field><field name="report_name">fw_account_reports.pdf_wide</field>
+        <field name="paperformat_id" ref="paper_landscape"/>
+        <field name="print_report_name">object.report_type + ' - ' + str(object.date_to)</field>
+    </record>
+    <template id="document">
+        <style>
+            .fw-report {font-family: Arial, sans-serif; color: #111; font-size: 10px;}
+            .fw-report h2 {font-size: 18px; margin: 3px 0; text-align: center;}
+            .fw-report h3 {font-size: 14px; margin: 3px 0; text-align: center;}
+            .fw-report .fw-heading {text-align: center; margin-bottom: 10px;}
+            .fw-report table {width: 100%; border-collapse: collapse; font-size: inherit;}
+            .fw-report thead {display: table-header-group;}
+            .fw-report th {border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 6px 3px; vertical-align: bottom;}
+            .fw-report td {padding: 4px 3px; vertical-align: top; overflow-wrap: anywhere;}
+            .fw-report tr {page-break-inside: avoid;}
+            .fw-report .fw-number {text-align: right; white-space: nowrap;}
+            .fw-report .fw-group td {font-weight: bold; background: #edf0f2; padding-top: 7px;}
+            .fw-report .fw-total td {font-weight: bold; border-top: 1px solid #aaa;}
+            .fw-report .fw-note {color: #555; margin: 7px 0; font-size: 9px;}
+            .fw-report.fw-wide {font-size: 8px;}
+        </style>
+        <t t-foreach="docs" t-as="o">
+            <t t-set="data" t-value="o._report_data()"/>
+            <div t-att-class="'fw-report ' + ('fw-wide' if len(data['columns']) &gt; 14 else '')">
+                <div class="fw-heading">
+                    <h2 t-out="o.company_id.name"/><h3 t-out="data['title']"/>
+                    <div><t t-if="o.report_type == 'aging'">As of <span t-field="o.date_to"/></t>
+                        <t t-else="">From <span t-field="o.date_from"/> to <span t-field="o.date_to"/></t>
+                        · Currency: <span t-out="o.company_id.currency_id.name"/>
+                    </div>
+                    <div t-if="o.report_type == 'transactions'"><t t-out="'Draft and Posted Entries' if o.target_moves == 'all' else 'Posted Entries'"/></div>
+                    <div t-else="">Posted Entries</div>
+                    <div t-if="o.partner_ids">Suppliers: <span t-out="', '.join(o.partner_ids.mapped('display_name'))"/></div>
+                    <div t-if="o.journal_ids">Journals / Banks: <span t-out="', '.join(o.journal_ids.mapped('name'))"/></div>
+                    <div t-if="o.account_ids and o.report_type in ('transactions', 'aging', 'suppliers')">Accounts: <span t-out="', '.join(o.account_ids.mapped('display_name'))"/></div>
+                    <div t-if="o.report_type == 'income'">
+                        Cost Centre Plan: <span t-out="o.cost_plan_id.name"/>
+                        <t t-if="o.city_plan_id"> · City Plan: <span t-out="o.city_plan_id.name"/></t>
+                        <div>Cost Centres: <span t-out="', '.join(o.cost_center_ids.mapped('name')) or 'All'"/>
+                            · Cities: <span t-out="', '.join(o.city_ids.mapped('name')) or 'All'"/>
+                            · Codes: <span t-out="o.code_from or 'First'"/> to <span t-out="o.code_to or 'Last'"/></div>
+                    </div>
+                </div>
+                <div class="fw-note">Generated: <span t-out="data['generated'].strftime('%d-%b-%Y %H:%M')"/> · User: <span t-out="o.env.user.name"/></div>
+                <div class="fw-note" t-if="o.report_type in ('payments', 'payment_taxes')">Posted supplier payments with journal entries. Deductions come from classified payment journal lines. Knock-off and balance are calculated through the end date.</div>
+                <div class="fw-note" t-if="o.report_type == 'payment_taxes'">Taxable amount defaults to gross unless specified on the payment. Rate defaults to effective WHT / taxable amount. Balance = net payment less reconciled gross amount.</div>
+                <div class="fw-note" t-if="o.report_type == 'annexure'">One row per posted vendor bill / credit note, selected by accounting date. Blank classifications require AP Report Details. Mixed UOM quantities are not added. Refunds reverse amounts.</div>
+                <div class="fw-note" t-if="o.report_type == 'income'">Income allocated to the selected analytic plan; credit income is shown in parentheses. Last Year is the same date range one year earlier.</div>
+                <table>
+                    <thead><tr><th t-foreach="data['columns']" t-as="column" t-att-class="'fw-number' if column[1] != 'text' else ''" t-out="column[0]"/></tr></thead>
+                    <tbody>
+                        <tr t-if="not data['has_lines']"><td t-att-colspan="len(data['columns'])">No entries found for the selected filters.</td></tr>
+                        <tr t-foreach="data['rows']" t-as="row" t-att-class="'fw-' + row['kind']">
+                            <td t-if="row['kind'] == 'group'" t-att-colspan="len(data['columns'])" t-out="row['cells'][0]"/>
+                            <t t-elif="row['kind'] == 'total'">
+                                <td t-att-colspan="data['numeric_start']" t-out="row['cells'][0]"/>
+                                <td t-foreach="row['cells'][data['numeric_start']:]" t-as="cell" class="fw-number"
+                                    t-out="o._format_cell(cell, data['columns'][cell_index + data['numeric_start']][1])"/>
+                            </t>
+                            <t t-else=""><td t-foreach="row['cells']" t-as="cell"
+                                t-att-class="'fw-number' if data['columns'][cell_index][1] != 'text' else ''"
+                                t-out="o._format_cell(cell, data['columns'][cell_index][1])"/></t>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+    <template id="pdf">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.basic_layout">
+                    <div class="page"><t t-call="fw_account_reports.document"><t t-set="docs" t-value="o"/></t></div>
+                    <div class="footer" style="font-size: 9px; text-align: right;">Page <span class="page"/> / <span class="topage"/></div>
+                </t>
+            </t>
+        </t>
+    </template>
+    <template id="pdf_wide"><t t-call="fw_account_reports.pdf"/></template>
+</odoo>

@@ -1,0 +1,22 @@
+<templates xml:space="preserve">
+    <t t-name="purchase_inherit.CrmCustomerSync">
+        <div class="o_action p-4 overflow-auto">
+            <h2>Sync CRM Customers</h2>
+            <t t-if="!state.job || state.job.state === 'running'">
+                <p role="status"><i class="fa fa-spinner fa-spin me-2"/>Importing customers…</p>
+                <p>You can return to the receipt while the import continues in the background.</p>
+            </t>
+            <t t-if="state.job">
+                <p t-if="state.job.state === 'done'" class="text-success" role="status">Customer sync completed.</p>
+                <p t-if="state.job.state === 'failed'" class="text-danger" role="alert" t-esc="state.job.error"/>
+                <div class="progress mb-3" role="progressbar" t-att-aria-valuenow="percentage" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar" t-att-style="'width: ' + percentage + '%'" t-esc="percentage + '%'"/>
+                </div>
+                <p><t t-esc="state.job.processed"/> / <t t-esc="state.job.total"/> customers processed</p>
+                <p>Created: <t t-esc="state.job.created"/> · Updated: <t t-esc="state.job.updated"/></p>
+            </t>
+            <p t-if="state.connectionError" class="text-warning" role="alert">Unable to refresh progress. Retrying…</p>
+            <button class="btn btn-primary" t-on-click="back">Return to receipt</button>
+        </div>
+    </t>
+</templates>

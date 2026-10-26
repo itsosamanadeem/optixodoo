@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_project_product_line_project_user,project.product.line project user,model_project_product_line,project.group_project_user,1,1,1,0
+access_project_product_line_project_manager,project.product.line project manager,model_project_product_line,project.group_project_manager,1,1,1,1
+access_project_approval_line_project_user,project.approval.line project user,model_project_approval_line,project.group_project_user,1,0,0,0
+access_project_approval_line_project_manager,project.approval.line project manager,model_project_approval_line,project.group_project_manager,1,1,1,1

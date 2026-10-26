@@ -1,0 +1,99 @@
+<odoo>
+    <record id="paperformat_cost_center" model="report.paperformat">
+        <field name="name">Cost Centre Expenses Letter</field>
+        <field name="format">Letter</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">18</field>
+        <field name="margin_right">12</field>
+        <field name="dpi">96</field>
+    </record>
+    <record id="action_report_expenses" model="ir.actions.report">
+        <field name="name">Cost Centre-wise Expenses</field>
+        <field name="model">cost.center.expense.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cost_center_expense_report.report_expenses</field>
+        <field name="paperformat_id" ref="paperformat_cost_center"/>
+        <field name="print_report_name">'Cost Centre-wise Expenses - %s' % object.date_to</field>
+    </record>
+    <template id="report_expenses">
+        <t t-call="web.html_container">
+            <t t-call="cost_center_expense_report.report_document"/>
+        </t>
+    </template>
+    <template id="report_document">
+        <style>
+            .cc-report { color: #000; font-size: 10pt; }
+            .cc-report, .cc-report * { font-family: 'DejaVu Serif', 'Times New Roman', serif !important; }
+            .cc-page { page-break-after: always; position: relative; padding-bottom: 10px; }
+            .cc-page:last-child { page-break-after: auto; }
+            .cc-report .cc-heading { text-align: center; position: relative; padding-bottom: 16px; }
+            .cc-report .cc-heading img { position: absolute; left: 0; top: 5px; width: 65px; max-height: 78px; object-fit: contain; }
+            .cc-report h2 { font-family: inherit; font-size: 17pt; margin: 0 70px 3px; font-weight: bold; }
+            .cc-report h3 { font-family: inherit; font-size: 15pt; margin: 2px 0; font-weight: bold; }
+            .cc-report .cc-subtitle { font-size: 9pt; }
+            .cc-report table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            .cc-report th, .cc-report td { padding: 1px 3px; vertical-align: top; line-height: 1.15; overflow-wrap: break-word; }
+            .cc-report th { text-align: left; }
+            .cc-report .cc-number { text-align: right; white-space: nowrap; }
+            .cc-report thead { border-top: 1px solid black; border-bottom: 1px solid black; }
+            .cc-report .cc-group { font-weight: bold; }
+            .cc-report .cc-group td { padding-top: 4px; }
+            .cc-report .cc-total { font-weight: bold; }
+            .cc-report .cc-total .cc-number { border-top: 1px solid black; border-bottom: 3px double black; }
+            .cc-report .cc-footer { border-top: 1px solid black; margin-top: 8px; font-size: 9pt; }
+            .cc-report .cc-right { float: right; white-space: nowrap; }
+        </style>
+        <div class="cc-report">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="data" t-value="doc._report_data()"/>
+                <t t-foreach="data['pages']" t-as="rows">
+                    <div class="page cc-page cc-report">
+                        <div class="cc-heading">
+                            <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)" alt="Company logo"/>
+                            <h2 t-out="doc.company_id.name"/>
+                            <strong t-out="doc.site_name"/>
+                            <h3>Cost Centre-wise Report</h3>
+                            <div class="cc-subtitle">
+                                ( Cost Centre: <t t-out="doc.code_from or 'All'"/> to: <t t-out="doc.code_to or 'All'"/>,
+                                From: <t t-out="doc.date_from.strftime('%d-%b-%Y')"/> to: <t t-out="doc.date_to.strftime('%d-%b-%Y')"/>, Expense,
+                                <t t-out="doc.company_id.currency_id.currency_unit_label or doc.company_id.currency_id.name"/> )
+                            </div>
+                            <div t-if="doc.site_name" class="cc-subtitle">( For Sites: <t t-out="doc.site_name"/> )</div>
+                        </div>
+                        <div>Date: <t t-out="data['generated'].strftime('%d-%b-%Y')"/>
+                            <span class="cc-right">Time: <t t-out="data['generated'].strftime('%I:%M %p')"/></span>
+                        </div>
+                        <table>
+                            <colgroup><col style="width:30%"/><col style="width:36%"/><col style="width:18%"/><col style="width:16%"/></colgroup>
+                            <thead>
+                                <tr><th colspan="2"/><th colspan="2" class="cc-number"><t t-out="doc.date_from.strftime('%d-%b-%Y')"/> to: <t t-out="doc.date_to.strftime('%d-%b-%Y')"/></th></tr>
+                                <tr><th>Account Code</th><th>Title</th><th class="cc-number">Actual</th><th class="cc-number">Last Year</th></tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="rows" t-as="row">
+                                    <t t-if="row['kind'] == 'group'">
+                                        <tr class="cc-group"><td t-out="row['code']"/><td colspan="3" t-out="row['title']"/></tr>
+                                        <tr><td colspan="4"><strong>Expense</strong></td></tr>
+                                    </t>
+                                    <tr t-else="" t-att-class="'cc-total' if row['kind'] != 'line' else ''">
+                                        <t t-if="row['kind'] == 'line'"><td t-out="row['code']"/><td t-out="row['title']"/></t>
+                                        <td t-else="" colspan="2" style="text-align:right" t-out="row['title']"/>
+                                        <td class="cc-number" t-out="data['format_amount'](row['actual'])"/>
+                                        <td class="cc-number" t-out="data['format_amount'](row['previous'])"/>
+                                    </tr>
+                                </t>
+                                <tr t-if="not data['groups']"><td colspan="4">No posted expenses for the selected cost centres and periods.</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="cc-footer">
+                            Odoo - <t t-out="data['generated'].strftime('%d/%m/%Y , %H:%M:%S')"/> User: <t t-out="doc.env.user.name"/>
+                            <span class="cc-right">Page: <t t-out="rows_index + 1"/> / <t t-out="len(data['pages'])"/></span>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </div>
+    </template>
+</odoo>

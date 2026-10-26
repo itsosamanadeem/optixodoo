@@ -1,0 +1,58 @@
+<odoo>
+    <record id="payment_tax_line_company_rule" model="ir.rule">
+        <field name="name">Payment tax lines: company</field><field name="model_id" ref="model_optix_payment_tax_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="payment_advice_line_company_rule" model="ir.rule">
+        <field name="name">Payment advice lines: company</field><field name="model_id" ref="model_optix_payment_advice_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="payment_tax_form" model="ir.ui.view">
+        <field name="name">account.payment.tax.advice</field><field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='amount']" position="attributes"><attribute name="readonly">state != 'draft' or optix_tax_payment</attribute></xpath>
+            <xpath expr="//sheet" position="inside">
+                <group string="Cheque Advice and Tax Deductions" invisible="payment_type != 'outbound' or partner_type != 'supplier'">
+                    <field name="optix_tax_payment" readonly="state != 'draft'"/>
+                    <group invisible="not optix_tax_payment">
+                        <field name="optix_gross_amount" readonly="state != 'draft'"/>
+                        <field name="optix_wht_amount"/><field name="optix_stsp_amount"/><field name="optix_net_amount"/>
+                    </group>
+                    <group invisible="not optix_tax_payment">
+                        <field name="optix_payee" placeholder="Defaults to supplier name" readonly="state != 'draft'"/>
+                        <field name="optix_cheque_date" readonly="state != 'draft'"/>
+                    </group>
+                </group>
+                <div invisible="not optix_tax_payment">
+                    <p>Enter gross settlement, then select deduction taxes. Use a custom base when the tax does not apply to the full gross amount. Normal sales tax belongs on the bill.</p>
+                    <field name="optix_tax_line_ids" readonly="state != 'draft'">
+                        <list editable="bottom">
+                            <field name="company_id" column_invisible="True"/><field name="currency_id" column_invisible="True"/>
+                            <field name="tax_id" options="{'no_create': True}"/><field name="category"/>
+                            <field name="use_gross"/><field name="manual_base" readonly="use_gross"/>
+                            <field name="base_amount"/><field name="rate"/><field name="effective_rate" optional="hide"/>
+                            <field name="calculation" optional="hide"/><field name="amount"/><field name="account_id"/>
+                        </list>
+                    </field>
+                    <separator string="Invoice / P.O. / PR References"/>
+                    <p>For standalone payments, enter references manually. These references document the advice; selecting a bill here does not reconcile it. Use Register Payment from the bill for automatic reconciliation.</p>
+                    <field name="optix_advice_line_ids" readonly="state != 'draft'">
+                        <list editable="bottom">
+                            <field name="company_id" column_invisible="True"/><field name="currency_id" column_invisible="True"/>
+                            <field name="invoice_id" optional="hide"/><field name="invoice_number"/>
+                            <field name="invoice_date"/><field name="po_reference"/><field name="pr_reference"/><field name="gross_amount"/>
+                        </list>
+                    </field>
+                    <separator string="Accounting Entries (Company Currency)"/>
+                    <field name="optix_journal_line_ids" readonly="True">
+                        <list create="False" edit="False" delete="False">
+                            <field name="company_currency_id" column_invisible="True"/>
+                            <field name="account_id"/><field name="name"/><field name="debit"/><field name="credit"/>
+                        </list>
+                    </field>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

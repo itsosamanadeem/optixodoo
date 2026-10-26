@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_approval_request_form_project_pr_budget" model="ir.ui.view">
+        <field name="name">approval.request.form.project.pr.budget</field>
+        <field name="model">approval.request</field>
+        <field name="inherit_id" ref="purchase_inherit.approval_request_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form//field[@name='request_type']" position="after">
+                <field name="project_project_id"
+                       string="Project"
+                       invisible="request_type != 'project_pr'"
+                       required="request_type == 'project_pr'"
+                       readonly="request_status in ['pending', 'approved', 'partial_approved', 'refused', 'cancel', 'purchase_order_created', 'internal_transfer_created']"/>
+                <field name="allowed_project_product_ids" invisible="1"/>
+            </xpath>
+            <xpath expr="/form//field[@name='project_project_id']" position="after">
+                <field name="project_total_cost" invisible="request_type != 'project_pr'" readonly="1"/>
+                <field name="project_utilized_amount" invisible="request_type != 'project_pr'" readonly="1"/>
+                <field name="project_remaining_amount" invisible="request_type != 'project_pr'" readonly="1"/>
+            </xpath>
+            <xpath expr="/form//field[@name='product_line_ids']/list/field[@name='product_id']" position="attributes">
+                <attribute name="domain">[('id', 'in', parent.allowed_project_product_ids)]</attribute>
+            </xpath>
+            <xpath expr="/form//field[@name='product_line_ids']/list/field[@name='price_unit']" position="after">
+                <field name="project_product_line_id" optional="hide" column_invisible="parent.request_type != 'project_pr'" readonly="1"/>
+                <field name="project_planned_qty" optional="show" column_invisible="parent.request_type != 'project_pr'" readonly="1"/>
+                <field name="project_requested_qty" optional="show" column_invisible="parent.request_type != 'project_pr'" readonly="1"/>
+                <field name="project_remaining_qty" optional="show" column_invisible="parent.request_type != 'project_pr'" readonly="1"/>
+                <field name="project_estimated_unit_cost" optional="show" column_invisible="parent.request_type != 'project_pr'" readonly="1"/>
+            </xpath>
+            <xpath expr="/form//button[@name='action_create_purchase_orders']" position="attributes">
+                <attribute name="invisible">approval_type != "purchase" or request_status not in ["approved", "partial_approved", "purchase_order_created"] or request_type not in ["pr", "project_pr"]</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

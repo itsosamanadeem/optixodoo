@@ -1,0 +1,77 @@
+<odoo>
+    <record id="action_payment_cheque_advice" model="ir.actions.report">
+        <field name="name">Payment / Cheque Advice</field><field name="model">account.payment</field>
+        <field name="report_type">qweb-pdf</field><field name="report_name">purchase_inherit.payment_cheque_advice</field>
+        <field name="report_file">purchase_inherit.payment_cheque_advice</field>
+        <field name="binding_model_id" ref="account.model_account_payment"/><field name="binding_type">report</field>
+        <field name="print_report_name">'Cheque Advice - %s' % (object.name or 'Draft')</field>
+    </record>
+    <template id="payment_cheque_advice">
+        <t t-call="web.html_container"><t t-foreach="docs" t-as="o"><t t-call="web.external_layout">
+            <t t-set="v" t-value="o._optix_advice_values()"/>
+            <div class="page optix-advice" style="font-size: 11px;">
+                <style>
+                    .optix-advice table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+                    .optix-advice th, .optix-advice td { padding: 5px; border-bottom: 1px solid #ddd; vertical-align: top; }
+                    .optix-advice th { background-color: #eee; text-align: left; }
+                    .optix-advice .text-end { text-align: right; }
+                    .optix-advice h2, .optix-advice h3 { text-align: center; }
+                    .optix-advice tr { page-break-inside: avoid; }
+                </style>
+                <h2><span t-field="o.company_id.name"/></h2>
+                <h3 class="text-center">Payment / Cheque Advice</h3>
+                <p t-if="o.state == 'draft'"><strong>DRAFT — Not posted</strong></p>
+                <p t-if="o.state in ('canceled', 'rejected')"><strong>CANCELED / REJECTED — Not valid for payment</strong></p>
+                <div class="row"><div class="col-6">
+                    <p><strong>Payment Date: </strong><span t-field="o.date"/><br/>
+                    <strong>Bank / Journal: </strong><span t-field="o.journal_id.name"/><br/>
+                    <strong>Bank Account: </strong><span t-field="o.journal_id.bank_account_id.acc_number"/><br/>
+                    <strong>Payment Method: </strong><span t-field="o.payment_method_line_id.name"/></p>
+                </div><div class="col-6">
+                    <p><strong>Voucher Number: </strong><span t-out="o.move_id.name if o.move_id and o.move_id.name != '/' else o.name"/><br/>
+                    <strong>Payment Number: </strong><span t-field="o.name"/><br/>
+                    <strong>Cheque / Payment Reference: </strong><span t-out="(o.check_number if 'check_number' in o._fields else '') or o.payment_reference or ''"/><br/>
+                    <strong>Cheque Date: </strong><span t-field="o.optix_cheque_date"/></p>
+                </div></div>
+                <p><strong>Supplier: </strong><span t-field="o.partner_id.name"/><br/>
+                    <strong>Address: </strong><span t-field="o.partner_id.contact_address"/><br/>
+                    <strong>Payee: </strong><span t-out="o.optix_payee or o.partner_id.name"/><br/>
+                    <strong>Payee Bank Account: </strong><span t-field="o.partner_bank_id.acc_number"/></p>
+                <table class="table table-sm">
+                    <thead><tr><th>Invoice Number</th><th>Invoice Date</th><th>P.O. / Bill Reference</th><th>PR No.</th><th class="text-end">Gross Amount</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="o.optix_advice_line_ids" t-as="line">
+                            <td><span t-field="line.invoice_number"/></td><td><span t-field="line.invoice_date"/></td>
+                            <td><span t-field="line.po_reference"/></td><td><span t-field="line.pr_reference"/></td>
+                            <td class="text-end"><span t-field="line.gross_amount"/></td>
+                        </tr>
+                        <tr t-if="not o.optix_advice_line_ids"><td colspan="4"><span t-out="o.memo or 'Standalone payment'"/></td><td class="text-end"><span t-field="o.optix_gross_amount"/></td></tr>
+                    </tbody>
+                </table>
+                <table class="table table-sm" t-if="o.optix_tax_line_ids">
+                    <thead><tr><th>Deduction</th><th>Tax</th><th class="text-end">Taxable Base</th><th class="text-end">Configured Rate %</th><th class="text-end">Effective Rate %</th><th class="text-end">Amount</th></tr></thead>
+                    <tbody><tr t-foreach="o.optix_tax_line_ids" t-as="tax">
+                        <td><span t-field="tax.category"/></td><td><span t-field="tax.tax_id"/></td><td class="text-end"><span t-field="tax.base_amount"/></td>
+                        <td class="text-end"><span t-if="tax.rate" t-field="tax.rate" t-options="{'precision': 2}"/><span t-else="">Formula</span></td><td class="text-end"><span t-field="tax.effective_rate" t-options="{'precision': 2}"/></td><td class="text-end"><span t-field="tax.amount"/></td>
+                    </tr></tbody>
+                </table>
+                <div class="row"><div class="col-6"/><div class="col-6"><table class="table table-sm">
+                    <tr><td>Total Gross Amount</td><td class="text-end"><span t-field="o.optix_gross_amount"/></td></tr>
+                    <tr><td>Less WHT Amount</td><td class="text-end"><span t-field="o.optix_wht_amount"/></td></tr>
+                    <tr><td>Less Sales Tax / STSP Amount</td><td class="text-end"><span t-field="o.optix_stsp_amount"/></td></tr>
+                    <tr><td><strong>Net Payable Amount</strong></td><td class="text-end"><strong><span t-field="o.amount"/></strong></td></tr>
+                </table></div></div>
+                <t t-if="o.move_id">
+                    <h5>Accounting Entries (<span t-field="o.company_id.currency_id.name"/>)</h5>
+                    <table class="table table-sm"><thead><tr><th>Account</th><th>Description</th><th class="text-end">Debit</th><th class="text-end">Credit</th></tr></thead>
+                        <tbody><tr t-foreach="o.move_id.line_ids" t-as="entry">
+                            <td><span t-field="entry.account_id"/></td><td><span t-field="entry.name"/></td>
+                            <td class="text-end"><span t-field="entry.debit"/></td><td class="text-end"><span t-field="entry.credit"/></td>
+                        </tr></tbody>
+                    </table>
+                </t>
+                <p t-if="o.optix_tax_line_ids">Formula taxes can have an effective rate different from the configured rate. Amounts are calculated on the stated taxable base.</p>
+            </div>
+        </t></t></t>
+    </template>
+</odoo>

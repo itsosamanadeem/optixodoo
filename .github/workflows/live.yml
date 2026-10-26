@@ -1,0 +1,27 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Pull latest main code
+        run: |
+          echo "Deploying production..."
+          cd ~/odoo19/custom-addons
+          git fetch origin
+          git checkout main
+          git reset --hard origin/main
+
+      - name: Restart container
+        run: docker restart odoo19-web-1
+
+      - name: Health check
+        run: |
+          sleep 5
+          docker ps | grep odoo19-web-1 || exit 1
